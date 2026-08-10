@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles # <-- Import this
 import pandas as pd
 import io
 
+
 app = FastAPI(title="Student Excel Data Viewer")
 
 
