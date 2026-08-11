@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACAP Smart Display</title>
+    <style>
+        body {
+            margin: 0; padding: 0; background-color: #0f172a; color: white;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; height: 100vh; overflow: hidden;
+        }
+
+        /* State 1: IP Setup Screen */
+        #setup-screen {
+            background: #1e293b; padding: 40px; border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center; border: 1px solid #334155;
+        }
+        #setup-screen input {
+            font-size: 24px; padding: 15px; width: 300px;
+            border: 2px solid #475569; border-radius: 8px; margin-bottom: 20px;
+            text-align: center; background: #0f172a; color: white; outline: none;
+        }
+        #setup-screen input:focus { border-color: #6366f1; }
+        #setup-screen button {
+            font-size: 20px; padding: 15px 40px; background: #4f46e5; color: white;
+            border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
+        }
+
+        /* State 2: Waiting Screen */
+        #waiting-screen {
+            display: none; font-size: 5vw; font-weight: 800;
+            color: #475569; letter-spacing: 4px; animation: pulse 2s infinite;
+        }
+
+        /* State 3: Data Screen */
+        #data-screen {
+            display: none; width: 90%; max-width: 1400px;
+            background: #1e293b; padding: 60px; border-radius: 24px;
+            box-shadow: 0 0 40px rgba(79, 70, 229, 0.3);
+            border: 4px solid #4f46e5; text-align: center;
+        }
+        .label { font-size: 32px; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+        .value { font-size: 64px; font-weight: bold; color: #f8fafc; margin-bottom: 40px; }
+        .name-value { font-size: 96px; color: #10b981; text-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
+
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Setup Screen -->
+    <div id="setup-screen">
+        <h2 style="margin-top: 0;">Connect to Control Station</h2>
+        <p style="color: #94a3b8; margin-bottom: 30px;">Enter the Laptop's IP Address (e.g., 192.168.1.5)</p>
+        <input type="text" id="ip-input" placeholder="192.168.1.X">
+        <br>
+        <button onclick="startListening()">CONNECT DISPLAY</button>
+        <p id="error-msg" style="color: #ef4444; margin-top: 20px; display: none;">Cannot connect. Retrying...</p>
+    </div>
+
+    <!-- Waiting Screen -->
+    <div id="waiting-screen">WAITING FOR DATA...</div>
+
+    <!-- Data Screen -->
+    <div id="data-screen">
+        <div class="label">Candidate Name</div>
+        <div class="value name-value" id="display-name">-</div>
+        
+        <div class="label">Application ID</div>
+        <div class="value" id="display-id">-</div>
+        
+        <div class="label">Category / Candidature</div>
+        <div class="value" id="display-category" style="margin-bottom: 0;">-</div>
+    </div>
+
+    <script>
+        let targetUrl = "";
+        let currentDisplayedId = null;
+
+        function startListening() {
+            let ip = document.getElementById('ip-input').value.trim();
+            if (!ip) return;
+
+            // Point to the laptop's FastAPI server running on port 8000
+            targetUrl = `http://${ip}:8000/api/current_student`;
+            
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('waiting-screen').style.display = 'block';
+
+            // Start polling every 1 second
+            setInterval(fetchData, 1000);
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch(targetUrl);
+                if (!response.ok) throw new Error("Network not ok");
+                
+                const data = await response.json();
+                document.getElementById('error-msg').style.display = 'none';
+
+                // If no student is selected yet, stay on waiting screen
+                if (Object.keys(data).length === 0) {
+                    document.getElementById('waiting-screen').style.display = 'block';
+                    document.getElementById('data-screen').style.display = 'none';
+                    return;
+                }
+
+                // If data exists, update the UI
+                document.getElementById('waiting-screen').style.display = 'none';
+                document.getElementById('data-screen').style.display = 'block';
+
+                document.getElementById('display-name').innerText = data.name;
+                document.getElementById('display-id').innerText = data.id;
+                document.getElementById('display-category').innerText = data.category;
+
+            } catch (error) {
+                console.error("Connection error:", error);
+                // If laptop disconnects, show waiting screen or error safely
+            }
+        }
+    </script>
+</body>
+</html>

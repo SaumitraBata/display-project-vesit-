@@ -79,7 +79,61 @@ async def upload_excel(file: UploadFile = File(...)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    
+
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+# 1. Allow the Raspberry Pi to fetch data from your laptop
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 2. Define the JSON structure
+class DisplayData(BaseModel):
+    category: str
+    id: str
+    name: str
+
+# 3. Memory to hold the currently selected student
+current_student = {}
+
+# 4. Endpoint for the laptop frontend to PUSH data
+@app.post("/api/broadcast")
+async def broadcast_student(data: DisplayData):
+    global current_student
+    current_student = data.model_dump() if hasattr(data, 'model_dump') else data.dict()
+    return {"status": "success"}
+
+# 5. Endpoint for the Raspberry Pi to PULL data
+@app.get("/api/current_student")
+async def get_current_student():
+    return current_student
+
+
+
+# Memory to hold the currently selected student
+current_student = {}
+
+# Endpoint for the laptop frontend to PUSH data (when you click Send)
+@app.post("/api/broadcast")
+async def broadcast_student(data: dict): # Using dict is easier if Pydantic gives you trouble
+    global current_student
+    current_student = data
+    return {"status": "success"}
+
+# Endpoint for the Raspberry Pi to PULL data (every 1 second)
+@app.get("/api/current_student")
+async def get_current_student():
+    return current_student
+
+
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    # Change host to 0.0.0.0 so the Raspberry Pi can connect over Wi-Fi
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

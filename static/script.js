@@ -132,8 +132,9 @@ async function sendToRaspberryPi() {
         name: rowData['Name'] || 'N/A'
     };
 
-    try {
-        const response = await fetch('http://127.0.0.1:8001/display', {
+try {
+        // Now sending data to the laptop's own main server!
+        const response = await fetch('/api/broadcast', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -142,10 +143,10 @@ async function sendToRaspberryPi() {
         if (response.ok) {
             showToast();
         } else {
-            alert("Failed to send to displays");
+            alert("Failed to update the central server.");
         }
     } catch (err) {
-        alert("Connection refused. Is the Raspberry Pi server running on port 8001?");
+        alert("Connection error. Ensure your main FastAPI server is running.");
     }
 }
 
