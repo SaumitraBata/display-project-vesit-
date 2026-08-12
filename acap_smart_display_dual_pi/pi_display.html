@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACAP Smart Display</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0f172a;
+            color: white;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #setup-screen {
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,.5);
+            text-align: center;
+            border: 1px solid #334155;
+        }
+
+        #setup-screen input {
+            font-size: 24px;
+            padding: 15px;
+            width: 300px;
+            border: 2px solid #475569;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: #0f172a;
+            color: white;
+            outline: none;
+        }
+
+        #setup-screen input:focus {
+            border-color: #6366f1;
+        }
+
+        #setup-screen button {
+            font-size: 20px;
+            padding: 15px 30px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #setup-screen button:hover {
+            opacity: .9;
+        }
+
+        #waiting-screen {
+            display: none;
+            font-size: 5vw;
+            font-weight: 800;
+            color: #475569;
+            letter-spacing: 4px;
+            animation: pulse 2s infinite;
+        }
+
+        #data-screen {
+            display: none;
+            width: 90%;
+            max-width: 1400px;
+            background: #1e293b;
+            padding: 60px;
+            border-radius: 24px;
+            box-shadow: 0 0 40px rgba(79,70,229,.3);
+            border: 4px solid #4f46e5;
+            text-align: center;
+        }
+
+        .label {
+            font-size: 32px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .value {
+            font-size: 64px;
+            font-weight: bold;
+            color: #f8fafc;
+            margin-bottom: 40px;
+        }
+
+        .name-value {
+            font-size: 96px;
+            color: #10b981;
+            text-shadow: 0 0 20px rgba(16,185,129,.4);
+        }
+
+        #status {
+            margin-top: 20px;
+            color: #94a3b8;
+        }
+
+        @keyframes pulse {
+            0% { opacity: .3; }
+            50% { opacity: 1; }
+            100% { opacity: .3; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="setup-screen">
+
+        <h2 style="margin-top:0;">
+            ACAP Smart Display
+        </h2>
+
+        <p style="color:#94a3b8;">
+            Select how this Raspberry Pi is connected
+        </p>
+
+        <div style="margin-top:25px;">
+
+            <input
+                type="text"
+                id="ip-input"
+                placeholder="Laptop IP"
+            >
+
+            <br>
+
+            <button onclick="connectLaptop()">
+                NORMAL Wi-Fi PI
+            </button>
+
+            <br><br>
+
+            <button onclick="connectESP32()">
+                MODIFIED PI + ESP32
+            </button>
+
+        </div>
+
+        <p id="status"></p>
+
+    </div>
+
+
+    <div id="waiting-screen">
+        WAITING FOR DATA...
+    </div>
+
+
+    <div id="data-screen">
+
+        <div class="label">Candidate Name</div>
+        <div class="value name-value" id="display-name">-</div>
+
+        <div class="label">Application ID</div>
+        <div class="value" id="display-id">-</div>
+
+        <div class="label">Category / Candidature</div>
+        <div class="value" id="display-category" style="margin-bottom:0;">
+            -
+        </div>
+
+    </div>
+
+
+<script>
+
+    // ========================================================
+    // COMMON DISPLAY FUNCTION
+    // ========================================================
+
+    function displayStudent(data) {
+
+        if (!data) return;
+
+        document.getElementById("waiting-screen").style.display = "none";
+        document.getElementById("data-screen").style.display = "block";
+
+        document.getElementById("display-name").innerText =
+            data.name || "-";
+
+        document.getElementById("display-id").innerText =
+            data.id || "-";
+
+        document.getElementById("display-category").innerText =
+            data.category || "-";
+    }
+
+
+    // ========================================================
+    // MODE 1: NORMAL RASPBERRY PI WITH WI-FI
+    // ========================================================
+
+    function connectLaptop() {
+
+        const ip =
+            document.getElementById("ip-input")
+            .value
+            .trim();
+
+        if (!ip) {
+            document.getElementById("status").innerText =
+                "Enter the laptop IP address first.";
+            return;
+        }
+
+        const targetUrl =
+            `http://${ip}:8000/api/current_student`;
+
+        document.getElementById("setup-screen").style.display =
+            "none";
+
+        document.getElementById("waiting-screen").style.display =
+            "block";
+
+        setInterval(async () => {
+
+            try {
+
+                const response =
+                    await fetch(targetUrl);
+
+                if (!response.ok)
+                    throw new Error("HTTP error");
+
+                const data =
+                    await response.json();
+
+                if (data && data.name) {
+                    displayStudent(data);
+                }
+
+            } catch (error) {
+
+                console.log(
+                    "Laptop connection error:",
+                    error
+                );
+
+            }
+
+        }, 1000);
+    }
+
+
+    // ========================================================
+    // MODE 2: MODIFIED RPI + ESP32
+    //
+    // ESP32 is connected to the Pi through USB.
+    // Chromium Web Serial reads /dev/ttyUSB0 through the
+    // CP210x USB-UART interface.
+    // ========================================================
+
+    async function connectESP32() {
+
+        try {
+
+            if (!("serial" in navigator)) {
+
+                document.getElementById("status").innerText =
+                    "This Chromium version does not support Web Serial.";
+
+                return;
+            }
+
+            const port =
+                await navigator.serial.requestPort();
+
+            await port.open({
+                baudRate: 115200
+            });
+
+            document.getElementById("setup-screen").style.display =
+                "none";
+
+            document.getElementById("waiting-screen").style.display =
+                "block";
+
+            document.getElementById("status").innerText =
+                "Connected to ESP32";
+
+            const decoder =
+                new TextDecoderStream();
+
+            port.readable.pipeTo(
+                decoder.writable
+            );
+
+            const reader =
+                decoder.readable.getReader();
+
+            let buffer = "";
+
+            while (true) {
+
+                const { value, done } =
+                    await reader.read();
+
+                if (done) break;
+
+                buffer += value;
+
+                const lines =
+                    buffer.split("\n");
+
+                buffer = lines.pop();
+
+                for (let line of lines) {
+
+                    line = line.trim();
+
+                    if (!line) continue;
+
+                    console.log(
+                        "ESP32:",
+                        line
+                    );
+
+                    try {
+
+                        const data =
+                            JSON.parse(line);
+
+                        // Only process our candidate JSON.
+                        if (
+                            data.category !== undefined &&
+                            data.id !== undefined &&
+                            data.name !== undefined
+                        ) {
+                            displayStudent(data);
+                        }
+
+                    } catch (error) {
+
+                        // Ignore non-JSON ESP32 messages.
+                    }
+                }
+            }
+
+        } catch (error) {
+
+            console.error(
+                "ESP32 connection error:",
+                error
+            );
+
+            document.getElementById("status").innerText =
+                "Could not connect to ESP32: " + error;
+        }
+    }
+
+</script>
+
+</body>
+</html>
