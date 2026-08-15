@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VESIT · Control Station</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+    <!-- ============================================================
+         TOP — title + subtext, logos flanking either side
+         ============================================================ -->
+    <header class="topbar">
+        <div class="logo-slot" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="34" height="34">
+                <circle cx="20" cy="20" r="18.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M13 26 L20 12 L27 26 M15.6 20.5 H24.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+
+        <div class="title-block">
+            <h1>Control Station</h1>
+            <p class="title-sub">Vivekanand Education Society&rsquo;s Institute of Technology &middot; Admission Portal</p>
+        </div>
+
+        <div class="logo-slot" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="34" height="34">
+                <circle cx="20" cy="20" r="18.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="20" cy="20" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+        </div>
+    </header>
+
+    <!-- ============================================================
+         MID — main control panel stage
+         ============================================================ -->
+    <main class="stage">
+
+        <!-- Nav Controls Bar (Visible when data loaded) -->
+        <div id="nav-controls" class="controller-bar hidden">
+            <div class="btn-group">
+                <button id="btn-up" class="btn btn-outline btn-icon" title="Previous Record (Arrow Up)">
+                    <i class="fa-solid fa-arrow-up"></i>
+                </button>
+                <button id="btn-down" class="btn btn-outline btn-icon" title="Next Record (Arrow Down)">
+                    <i class="fa-solid fa-arrow-down"></i>
+                </button>
+            </div>
+            <button id="btn-send" class="btn" title="Send selected record to public displays">
+                <i class="fa-solid fa-paper-plane"></i> Send to Displays
+            </button>
+        </div>
+
+        <div class="view">
+
+            <!-- Upload Dropzone Section -->
+            <section id="upload-section" class="panel setup-panel">
+                <h2>Import Merit List</h2>
+                <p class="setup-sub">Upload an Excel (.xlsx, .xls) or CSV file to broadcast candidates to kiosk displays.</p>
+
+                <div class="dropzone-wrapper">
+                    <label id="dropzone" class="dropzone-box">
+                        <div class="dropzone-icon">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <h3>Click to upload or drag &amp; drop</h3>
+                        <p>Supports .xlsx, .xls, and .csv files</p>
+                        <input id="file-input" type="file" class="hidden-input" accept=".xlsx, .xls, .csv" />
+                    </label>
+                </div>
+            </section>
+
+            <!-- Data Management Section -->
+            <section id="data-section" class="panel data-panel hidden">
+                
+                <div class="filter-bar">
+                    <div class="search-field">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Search candidates, IDs, categories..." autocomplete="off">
+                    </div>
+
+                    <div class="filter-actions">
+                        <span id="row-count" class="record-badge">0 records found</span>
+                        <button id="reset-btn" class="btn btn-outline">
+                            <i class="fa-solid fa-arrow-up-from-bracket"></i> New File
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tables Container -->
+                <div id="tables-container" class="tables-wrapper"></div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification" role="status">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Sent to Displays!</span>
+    </div>
+
+    <!-- ============================================================
+         BOTTOM — credits
+         ============================================================ -->
+    <footer class="footbar">
+        <span>Built by <strong>Saumitra</strong> &middot; <strong>Tejasva</strong> &middot; <strong>Saket</strong></span>
+    </footer>
+
+    <!-- External Controller Logic -->
+    <script src="/static/script.js"></script>
+</body>
+</html>

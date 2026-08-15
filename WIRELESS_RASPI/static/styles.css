@@ -1,0 +1,386 @@
+/* ============================================================
+   DESIGN SYSTEM & VARIABLES
+   ============================================================ */
+:root {
+    --cream:       #f6efe2;
+    --cream-deep:  #ece0c8;
+    --surface:     #fffdf8;
+    --ink:         #1a1310;
+    --muted:       #6b5d50;
+    --border:      #e3d6bc;
+
+    --maroon:      #5c1023;
+    --maroon-deep: #3e0a17;
+    --gold:        #b8872b;
+
+    --ok:          #3f7256;
+    --warn:        #b8872b;
+
+    --shadow-lift: 0 26px 56px -30px rgba(26, 19, 16, 0.30),
+                    0 2px 8px -2px rgba(26, 19, 16, 0.08);
+}
+
+* { 
+    box-sizing: border-box; 
+}
+
+html, body { 
+    height: 100%; 
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--cream);
+    color: var(--ink);
+    /* Safe font fallbacks so local missing files don't block rendering */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+::selection { 
+    background: var(--maroon); 
+    color: var(--cream); 
+}
+
+h1, h2, h3, p, span, button, input { 
+    font-family: inherit; 
+}
+
+/* ---------------------------------------------------------
+   LAYOUT BASE (TOPBAR, STAGE, FOOTBAR)
+   --------------------------------------------------------- */
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px clamp(20px, 3vw, 48px);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+}
+
+.logo-slot {
+    color: var(--maroon);
+    display: flex;
+    flex-shrink: 0;
+    width: 34px;
+}
+
+.title-block {
+    text-align: center;
+    flex: 1;
+}
+
+.title-block h1 {
+    margin: 0;
+    font-weight: 800;
+    font-size: clamp(1.5rem, 1.6vw + 1rem, 2.1rem);
+    letter-spacing: -0.01em;
+    position: relative;
+    display: inline-block;
+    padding-bottom: 10px;
+}
+
+.title-block h1::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 44px;
+    height: 3px;
+    background: var(--gold);
+    border-radius: 2px;
+}
+
+.title-sub {
+    margin: 6px 0 0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted);
+}
+
+.stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: clamp(20px, 3vw, 40px) 32px;
+    width: 100%;
+}
+
+.view {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.panel { 
+    width: 100%; 
+}
+
+.setup-panel { 
+    max-width: 780px; 
+    text-align: center; 
+}
+
+.setup-panel h2 {
+    font-weight: 800;
+    font-size: clamp(1.3rem, 1.6vw + 0.8rem, 1.7rem);
+    margin: 0 0 8px;
+}
+
+.setup-sub { 
+    color: var(--muted); 
+    margin: 0 0 28px; 
+    font-size: 0.95rem; 
+}
+
+/* Buttons */
+.btn {
+    font-size: 0.92rem;
+    font-weight: 700;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--maroon);
+    background: var(--maroon);
+    color: var(--cream);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 150ms ease, transform 100ms ease;
+}
+
+.btn:hover { background: var(--maroon-deep); }
+.btn:active { transform: translateY(1px); }
+.btn-outline { background: transparent; color: var(--maroon); }
+.btn-outline:hover { background: rgba(92, 16, 35, 0.06); }
+
+.footbar {
+    flex-shrink: 0;
+    padding: 12px clamp(20px, 3vw, 44px);
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--muted);
+}
+
+/* ---------------------------------------------------------
+   CONTROL STATION EXTENSIONS (YOUR WORKING CODE)
+   --------------------------------------------------------- */
+.hidden {
+    display: none !important;
+}
+
+.hidden-input {
+    display: none;
+}
+
+.controller-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: clamp(16px, 2vw, 28px);
+    flex-shrink: 0;
+}
+
+.btn-group {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-icon {
+    padding: 10px 16px;
+}
+
+.btn i {
+    margin-right: 6px;
+}
+
+.btn-icon i {
+    margin-right: 0;
+}
+
+.dropzone-wrapper {
+    max-width: 580px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.dropzone-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 40px 24px;
+    cursor: pointer;
+    box-shadow: var(--shadow-lift);
+    transition: border-color 150ms ease, background-color 150ms ease, transform 100ms ease;
+}
+
+.dropzone-box:hover {
+    border-color: var(--maroon);
+    background: var(--cream);
+}
+
+.dropzone-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--cream-deep);
+    color: var(--maroon);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 16px;
+    transition: transform 150ms ease;
+}
+
+.dropzone-box:hover .dropzone-icon {
+    transform: scale(1.08);
+}
+
+.dropzone-box h3 {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.dropzone-box p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.data-panel {
+    width: 100%;
+    max-width: 100%; /* Removes the 1100px restriction */
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 14px 18px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-lift);
+    flex-wrap: wrap;
+}
+
+.search-field {
+    position: relative;
+    flex: 1;
+    min-width: 240px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.search-field input {
+    width: 100%;
+    padding: 10px 14px 10px 38px;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--ink);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 150ms ease;
+}
+
+.search-field input:focus {
+    border-color: var(--maroon);
+    box-shadow: 0 0 0 3px rgba(92, 16, 35, 0.12);
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.record-badge {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.tables-wrapper {
+    width: 100%;
+    overflow-x: auto; /* Adds a clean horizontal scrollbar if columns exceed screen width */
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-lift);
+}
+
+.tables-wrapper table {
+    width: max-content; /* Forces table columns to expand naturally to fit text content */
+    min-width: 100%;    /* Fills the card fully even if there are few columns */
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.88rem;
+}
+
+.tables-wrapper table th,
+.tables-wrapper table td {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.tables-wrapper table th {
+    font-size: 0.72rem;
+}
+
+.toast-notification {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: var(--ok);
+    color: #ffffff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 12px 30px -10px rgba(26, 19, 16, 0.35);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms ease;
+    z-index: 100;
+}
+
+.toast-notification.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+}

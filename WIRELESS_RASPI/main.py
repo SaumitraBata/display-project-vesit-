@@ -1,11 +1,10 @@
-from fastapi import FastAPI, UploadFile, File, Request, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import io
-import socket
 import json
 
 app = FastAPI(title="Student Excel Data Viewer")
@@ -13,20 +12,8 @@ app = FastAPI(title="Student Excel Data Viewer")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# ============================================================
-# ESP32 CONFIGURATION
-# Add the IP address of every ESP32 connected to a modified Pi.
-# ============================================================
-
-ESP32_IPS = [
-    "192.168.131.26",
-    # "192.168.131.27",   # Uncomment if you have a second ESP32
-]
-
-ESP32_PORT = 5000
-
-# Currently selected student
 current_student = {}
+active_connections = set()
 
 # Allow the display clients to call the API
 app.add_middleware(
@@ -138,52 +125,41 @@ async def upload_excel(file: UploadFile = File(...)):
         )
 
 
-@app.post("/api/broadcast")
-async def broadcast_student(data: dict):
-    """
-    Called by the laptop frontend when a candidate is selected.
+@app.websocket("/ws")
+async def ws_endpoint(websocket: WebSocket):
+    global active_connections
 
-    1. Save the student for normal Wi-Fi Raspberry Pi displays.
-    2. Forward the same JSON to every configured ESP32.
-    """
+    await websocket.accept()
+    active_connections.add(websocket)
+    print("New Connection!")
+    await websocket.send_json({"type": "full_sync", "data": current_student})  # send current state on connect
+    try:
+        while True:
+            await websocket.receive_text()  # keep alive / handle pings
+    except WebSocketDisconnect:
+        active_connections.discard(websocket)
 
-    global current_student
 
-    current_student = data
+@app.post("/api/update_student")
+async def broadcast_update(payload: dict):
+    global active_connections, current_student
 
-    print("Selected candidate:", data)
+    current_student = payload
+    print("Selected candidate:", payload)
 
-    message = json.dumps(data) + "\n"
-
-    for esp32_ip in ESP32_IPS:
+    dead = set()
+    for ws in active_connections:
         try:
-            with socket.create_connection(
-                (esp32_ip, ESP32_PORT),
-                timeout=2
-            ) as sock:
-                sock.sendall(message.encode("utf-8"))
-
-            print(f"Sent candidate to ESP32 {esp32_ip}")
-
-        except Exception as e:
-            # Do not stop the host application if an ESP32 is offline.
-            print(
-                f"Could not send candidate to ESP32 "
-                f"{esp32_ip}: {e}"
-            )
+            await ws.send_json(payload)
+        except Exception:
+            print('Disconnected!')
+            dead.add(ws)
+    active_connections -= dead
 
     return {
-        "status": "success",
-        "student": data
+        "status": 200,
+        "student": payload
     }
-
-
-@app.get("/api/current_student")
-async def get_current_student():
-    """
-    Used by the normal Wi-Fi Raspberry Pi.
-    """
-    return current_student
 
 
 if __name__ == "__main__":

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VESIT · Admission Portal</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+
+    <!-- ============================================================
+         TOP — title + subtext, logos flanking either side
+         ============================================================ -->
+    <header class="topbar">
+        <div class="logo-slot" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="34" height="34">
+                <circle cx="20" cy="20" r="18.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M13 26 L20 12 L27 26 M15.6 20.5 H24.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+
+        <div class="title-block">
+            <h1>Admission Portal</h1>
+            <p class="title-sub">Vivekanand Education Society&rsquo;s Institute of Technology &middot; Chembur, Mumbai</p>
+        </div>
+
+        <div class="logo-slot" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="34" height="34">
+                <circle cx="20" cy="20" r="18.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="20" cy="20" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+        </div>
+    </header>
+
+    <!-- ============================================================
+         MID — toggle, then whichever view is active
+         ============================================================ -->
+    <main class="stage">
+
+        <div class="toggle" role="tablist" aria-label="Display view">
+            <button class="toggle-btn is-active" id="tab-students" role="tab" aria-selected="true" onclick="switchView('students')">Students</button>
+            <button class="toggle-btn" id="tab-seats" role="tab" aria-selected="false" onclick="switchView('seats')">Seats</button>
+        </div>
+
+        <!-- ---------- STUDENTS VIEW ---------- -->
+        <div id="view-students" class="view">
+
+            <section id="setup-screen" class="panel setup-panel">
+
+                <h2>Set up this display</h2>
+                <p class="setup-sub">Choose how this Raspberry Pi reaches the admin server.</p>
+
+                <div class="setup-options">
+
+                    <div class="setup-option">
+                        <h3>Connect over Wi&#8209;Fi</h3>
+                        <p>This Pi has its own network connection to the admin laptop.</p>
+                        <input type="text" id="ip-input" placeholder="Admin laptop IP address" inputmode="numeric" autocomplete="off">
+                        <button class="btn" onclick="connectLaptop()">Connect</button>
+                    </div>
+
+                    <div class="setup-option">
+                        <h3>Connect via USB bridge</h3>
+                        <p>This Pi has no Wi&#8209;Fi and reads candidate data from an ESP32 over a USB serial cable.</p>
+                        <button class="btn btn-outline" onclick="connectESP32()">Select serial device</button>
+                    </div>
+
+                </div>
+
+                <p id="status" role="status"></p>
+
+            </section>
+
+            <section id="waiting-screen" class="panel waiting-panel" style="display:none;">
+                <span class="waiting-dot"></span>
+                <p>Waiting for the next candidate</p>
+            </section>
+
+            <section id="data-screen" class="panel candidate-card" style="display:none;">
+
+                <div class="sysstate" id="sysstate">
+                    <span class="sysstate-dot" id="sysstate-dot"></span>
+                    <span id="sysstate-label">Connecting</span>
+                </div>
+
+                <h2 id="display-name" class="candidate-name">&#8211;</h2>
+
+                <div class="meta-row">
+                    <div class="meta-item">
+                        <span class="meta-label">Application ID</span>
+                        <span class="meta-value" id="display-id">&#8211;</span>
+                    </div>
+                    <div class="meta-divider" aria-hidden="true"></div>
+                    <div class="meta-item">
+                        <span class="meta-label">Category / Candidature</span>
+                        <span class="meta-value" id="display-category">&#8211;</span>
+                    </div>
+                </div>
+
+                <p class="freshness" id="freshness"></p>
+
+            </section>
+
+        </div>
+
+        <!-- ---------- SEATS VIEW (placeholder data) ---------- -->
+        <div id="view-seats" class="view" style="display:none;">
+
+            <!-- <p class="seats-note">Seat counts are placeholders — this view will sync with live data once seat allocation is wired in.</p> -->
+
+            <div class="bento">
+
+                <div class="bento-item">
+                    <span class="bento-dept">CMPN</span>
+                    <span class="bento-count">&mdash;</span>
+                </div>
+
+                <div class="bento-item">
+                    <span class="bento-dept">INFT</span>
+                    <span class="bento-count">&mdash;</span>
+                </div>
+
+                <div class="bento-item">
+                    <span class="bento-dept">AIDS</span>
+                    <span class="bento-count">&mdash;</span>
+                </div>
+
+                <div class="bento-item">
+                    <span class="bento-dept">EXTC</span>
+                    <span class="bento-count">&mdash;</span>
+                </div>
+
+                <div class="bento-item">
+                    <span class="bento-dept">AURO</span>
+                    <span class="bento-count">&mdash;</span>
+                </div>
+
+                <div class="bento-item">
+                    <span class="bento-dept">ECS</span>
+                    <span class="bento-count">&mdash;</span>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- ============================================================
+         BOTTOM — credits
+         ============================================================ -->
+    <footer class="footbar">
+        <span>Built by <strong>Saumitra</strong> &middot; <strong>Tejasva</strong> &middot; <strong>Saket</strong></span>
+    </footer>
+
+    <script src="backend.js"></script>
+</body>
+</html>
