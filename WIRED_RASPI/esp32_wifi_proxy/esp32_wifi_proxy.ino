@@ -5,10 +5,10 @@
 // ESP32 Wi-Fi + WebSocket configuration
 // ============================================================
 
-const char* ssid = "Harishk";
-const char* password = "fishes_nine";
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
 
-const char* wsHost = "192.168.0.104";  // Pi A's IP
+const char* wsHost = "YOUR_HOST_IP";  // Pi A's IP
 const uint16_t wsPort = 8000;          // FastAPI/uvicorn port
 const char* wsPath = "/ws";
 
