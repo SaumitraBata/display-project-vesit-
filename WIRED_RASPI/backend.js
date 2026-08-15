@@ -1,26 +1,4 @@
 // ========================================================
-// VIEW TOGGLE — Students / Seats
-// ========================================================
-
-function switchView(view) {
-
-    const isStudents = view === "students";
-
-    document.getElementById("view-students").style.display =
-        isStudents ? "flex" : "none";
-
-    document.getElementById("view-seats").style.display =
-        isStudents ? "none" : "flex";
-
-    document.getElementById("tab-students").classList.toggle("is-active", isStudents);
-    document.getElementById("tab-students").setAttribute("aria-selected", isStudents);
-
-    document.getElementById("tab-seats").classList.toggle("is-active", !isStudents);
-    document.getElementById("tab-seats").setAttribute("aria-selected", !isStudents);
-}
-
-
-// ========================================================
 // COMMON DISPLAY FUNCTION
 // ========================================================
 
@@ -31,65 +9,14 @@ function displayStudent(data) {
     document.getElementById("waiting-screen").style.display = "none";
     document.getElementById("data-screen").style.display = "block";
 
-    const nameEl = document.getElementById("display-name");
-    nameEl.innerText = data.name || "-";
-    fitName(nameEl);
+    document.getElementById("display-name").innerText =
+        data.name || "-";
 
     document.getElementById("display-id").innerText =
         data.id || "-";
 
     document.getElementById("display-category").innerText =
         data.category || "-";
-}
-
-
-// ========================================================
-// Auto-fit guard for the candidate name.
-//
-// clamp() handles typical names; this is the backstop for the
-// long ones so nothing truncates or overflows the card, no
-// matter how long the string is. Shrinks in small steps until
-// it fits on two lines, then stops.
-// ========================================================
-
-function fitName(el) {
-
-    const maxFontPx = parseFloat(getComputedStyle(el).fontSize);
-    let fontPx = maxFontPx;
-    const minFontPx = maxFontPx * 0.45;
-
-    el.style.fontSize = fontPx + "px";
-
-    const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
-    const maxHeight = lineHeight * 2;
-
-    let guard = 0;
-    while (el.scrollHeight > maxHeight + 1 && fontPx > minFontPx && guard < 40) {
-        fontPx -= 2;
-        el.style.fontSize = fontPx + "px";
-        guard++;
-    }
-}
-
-
-// ========================================================
-// Freshness + connection-status indicator
-// ========================================================
-
-function setSysState(state) {
-    const el = document.getElementById("sysstate");
-    const label = document.getElementById("sysstate-label");
-    if (!el || !label) return;
-    el.classList.remove("is-live", "is-down");
-    if (state === "live") {
-        el.classList.add("is-live");
-        label.innerText = "Live";
-    } else if (state === "down") {
-        el.classList.add("is-down");
-        label.innerText = "Connection lost";
-    } else {
-        label.innerText = "Connecting";
-    }
 }
 
 
@@ -117,7 +44,7 @@ function connectLaptop() {
         "none";
 
     document.getElementById("waiting-screen").style.display =
-        "flex";
+        "block";
 
     setInterval(async () => {
 
@@ -142,8 +69,6 @@ function connectLaptop() {
                 "Laptop connection error:",
                 error
             );
-
-            setSysState("down");
 
         }
 
@@ -182,7 +107,7 @@ async function connectESP32() {
             "none";
 
         document.getElementById("waiting-screen").style.display =
-            "flex";
+            "block";
 
         document.getElementById("status").innerText =
             "Connected to ESP32";
@@ -254,7 +179,5 @@ async function connectESP32() {
 
         document.getElementById("status").innerText =
             "Could not connect to ESP32: " + error;
-
-        setSysState("down");
     }
 }

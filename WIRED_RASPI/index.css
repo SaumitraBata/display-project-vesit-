@@ -1,440 +1,107 @@
-/* ============================================================
-   Self-hosted type — Archivo only, no serif anywhere.
-   One variable family (wght 100–900, wdth 62–125) covers
-   everything from the giant name down to meta labels, so
-   contrast in the type system comes from weight and size,
-   not from mixing faces.
-   ============================================================ */
-
-@font-face {
-    font-family: 'Archivo';
-    src: url('fonts/Archivo.woff2') format('woff2');
-    font-weight: 100 900;
-    font-stretch: 62% 125%;
-    font-style: normal;
-    font-display: swap;
-}
-
-:root {
-    --cream:       #f6efe2;
-    --cream-deep:  #ece0c8;
-    --surface:     #fffdf8;
-    --ink:         #1a1310;
-    --muted:       #6b5d50;
-    --border:      #e3d6bc;
-
-    --maroon:      #5c1023;
-    --maroon-deep: #3e0a17;
-    --gold:        #b8872b;
-
-    --ok:          #3f7256;
-    --warn:        #b8872b;
-
-    --shadow-lift: 0 26px 56px -30px rgba(26, 19, 16, 0.30),
-                    0 2px 8px -2px rgba(26, 19, 16, 0.08);
-}
-
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-
 body {
     margin: 0;
-    background: var(--cream);
-    color: var(--ink);
-    font-family: 'Archivo', system-ui, sans-serif;
+    padding: 0;
+    background-color: #0f172a;
+    color: white;
+    font-family: 'Segoe UI', system-ui, sans-serif;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-}
-
-::selection { background: var(--maroon); color: var(--cream); }
-
-h1, h2, h3, p, span, button, input { font-family: inherit; }
-
-/* ---------------------------------------------------------
-   TOP — title centered, logos flanking
-   --------------------------------------------------------- */
-
-.topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 20px clamp(20px, 3vw, 48px);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-}
-
-.logo-slot {
-    color: var(--maroon);
-    display: flex;
-    flex-shrink: 0;
-    width: 34px;
-}
-
-.title-block {
-    text-align: center;
-    flex: 1;
-}
-
-.title-block h1 {
-    margin: 0;
-    font-weight: 800;
-    font-stretch: 100%;
-    font-size: clamp(1.5rem, 1.6vw + 1rem, 2.1rem);
-    letter-spacing: -0.01em;
-    position: relative;
-    display: inline-block;
-    padding-bottom: 10px;
-}
-
-.title-block h1::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    transform: translateX(-50%);
-    width: 44px;
-    height: 3px;
-    background: var(--gold);
-    border-radius: 2px;
-}
-
-.title-sub {
-    margin: 6px 0 0;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--muted);
-}
-
-/* ---------------------------------------------------------
-   MID — stage, toggle, views
-   --------------------------------------------------------- */
-
-.stage {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: clamp(20px, 3vw, 40px) 32px;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.toggle {
-    display: inline-flex;
-    background: var(--cream-deep);
-    border-radius: 999px;
-    padding: 4px;
-    gap: 4px;
-    margin-bottom: clamp(20px, 3vw, 36px);
-    flex-shrink: 0;
-}
-
-.toggle-btn {
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    font-weight: 700;
-    font-size: 0.92rem;
-    padding: 9px 26px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background-color 150ms ease, color 150ms ease;
-}
-
-.toggle-btn.is-active {
-    background: var(--maroon);
-    color: var(--cream);
-}
-
-.toggle-btn:not(.is-active):hover { color: var(--ink); }
-
-.view {
-    width: 100%;
-    flex: 1;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    min-height: 0;
-    overflow: auto;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
 }
 
-.panel { width: 100%; }
-
-/* ---------------------------------------------------------
-   Setup screen
-   --------------------------------------------------------- */
-
-.setup-panel { max-width: 780px; text-align: center; }
-
-.setup-panel h2 {
-    font-weight: 800;
-    font-size: clamp(1.3rem, 1.6vw + 0.8rem, 1.7rem);
-    margin: 0 0 8px;
+#setup-screen {
+    background: #1e293b;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,.5);
+    text-align: center;
+    border: 1px solid #334155;
 }
 
-.setup-sub { color: var(--muted); margin: 0 0 28px; font-size: 0.95rem; }
-
-.setup-options {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-    text-align: left;
-}
-
-.setup-option {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 24px;
-    box-shadow: var(--shadow-lift);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.setup-option h3 { font-size: 1.05rem; font-weight: 700; margin: 0; }
-
-.setup-option p {
-    color: var(--muted);
-    font-size: 0.88rem;
-    line-height: 1.5;
-    margin: 0 0 6px;
-    flex: 1;
-}
-
-#ip-input {
-    font-size: 0.95rem;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
+#setup-screen input {
+    font-size: 24px;
+    padding: 15px;
+    width: 300px;
+    border: 2px solid #475569;
     border-radius: 8px;
-    background: var(--cream);
-    color: var(--ink);
+    margin-bottom: 20px;
+    text-align: center;
+    background: #0f172a;
+    color: white;
     outline: none;
 }
 
-#ip-input:focus {
-    border-color: var(--maroon);
-    box-shadow: 0 0 0 3px rgba(92, 16, 35, 0.14);
+#setup-screen input:focus {
+    border-color: #6366f1;
 }
 
-.btn {
-    font-size: 0.92rem;
-    font-weight: 700;
-    padding: 12px 20px;
+#setup-screen button {
+    font-size: 20px;
+    padding: 15px 30px;
+    background: #4f46e5;
+    color: white;
+    border: none;
     border-radius: 8px;
-    border: 1px solid var(--maroon);
-    background: var(--maroon);
-    color: var(--cream);
     cursor: pointer;
-    transition: background-color 150ms ease, transform 100ms ease;
+    font-weight: bold;
 }
 
-.btn:hover { background: var(--maroon-deep); }
-.btn:active { transform: translateY(1px); }
-.btn:focus-visible { outline: 2px solid var(--maroon); outline-offset: 2px; }
-
-.btn-outline { background: transparent; color: var(--maroon); }
-.btn-outline:hover { background: rgba(92, 16, 35, 0.06); }
-
-#status { margin-top: 22px; color: var(--muted); font-size: 0.88rem; min-height: 1.2em; }
-
-/* ---------------------------------------------------------
-   Waiting / idle screen
-   --------------------------------------------------------- */
-
-.waiting-panel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-    color: var(--muted);
+#setup-screen button:hover {
+    opacity: .9;
 }
 
-.waiting-panel p { font-weight: 600; font-size: 1.05rem; margin: 0; }
-
-.waiting-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--maroon);
-    animation: breathe 2.4s ease-in-out infinite;
-}
-
-@keyframes breathe {
-    0%, 100% { opacity: 0.25; transform: scale(0.9); }
-    50%      { opacity: 1;    transform: scale(1); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .waiting-dot { animation: none; opacity: 0.7; }
-}
-
-/* ---------------------------------------------------------
-   Candidate card — name is maximum-contrast, sans, huge.
-   No color fill competing with it; card is quiet framing.
-   --------------------------------------------------------- */
-
-.candidate-card {
-    max-width: 1200px;
-    margin: 0 auto;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    box-shadow: var(--shadow-lift);
-    padding: clamp(36px, 5vw, 76px) clamp(28px, 6vw, 88px);
-    text-align: center;
-    position: relative;
-}
-
-.candidate-card .sysstate {
-    position: absolute;
-    top: 22px;
-    right: 26px;
-}
-
-.candidate-name {
-    font-weight: 900;
-    font-stretch: 100%;
-    font-size: clamp(2.6rem, 3.2vw + 2.4rem, 6.4rem);
-    line-height: 1.04;
-    letter-spacing: -0.01em;
-    color: var(--ink);
-    margin: 0 0 clamp(26px, 4vw, 44px);
-    word-break: normal;
-    overflow-wrap: break-word;
-    hyphens: none;
-}
-
-.meta-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(24px, 4vw, 56px);
-    padding-top: clamp(18px, 3vw, 30px);
-    border-top: 1px solid var(--border);
-}
-
-.meta-item { display: flex; flex-direction: column; gap: 6px; text-align: left; }
-
-.meta-label {
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-}
-
-.meta-value {
-    font-size: clamp(1.1rem, 1vw + 0.95rem, 1.55rem);
-    font-weight: 700;
-    color: var(--ink);
-}
-
-.meta-divider { width: 1px; align-self: stretch; background: var(--border); }
-
-.freshness { margin: 18px 0 0; font-size: 0.76rem; color: var(--muted); }
-
-.sysstate {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--muted);
-}
-
-.sysstate-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--warn);
-    transition: background-color 200ms ease;
-}
-
-.sysstate.is-live .sysstate-dot { background: var(--ok); }
-.sysstate.is-down .sysstate-dot { background: var(--maroon); }
-
-/* ---------------------------------------------------------
-   Seats view — bento grid, placeholder counts
-   --------------------------------------------------------- */
-
-.seats-note {
-    margin: 0 0 22px;
-    font-size: 0.82rem;
-    color: var(--muted);
-    text-align: center;
-    max-width: 640px;
-}
-
-.bento {
-    width: 100%;
-    max-width: 1200px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-auto-rows: minmax(120px, 1fr);
-    gap: 16px;
-}
-
-.bento-item {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: var(--shadow-lift);
-    padding: 22px 24px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.bento-featured {
-    grid-column: span 2;
-    background: var(--maroon);
-    border-color: var(--maroon-deep);
-}
-
-.bento-dept {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--muted);
-}
-
-.bento-featured .bento-dept { color: rgba(246, 239, 226, 0.78); }
-
-.bento-count {
-    font-size: clamp(2rem, 2vw + 1.4rem, 2.8rem);
+#waiting-screen {
+    display: none;
+    font-size: 5vw;
     font-weight: 800;
-    color: var(--ink);
-    letter-spacing: -0.01em;
+    color: #475569;
+    letter-spacing: 4px;
+    animation: pulse 2s infinite;
 }
 
-.bento-featured .bento-count { color: var(--gold); }
-
-/* ---------------------------------------------------------
-   BOTTOM — credits
-   --------------------------------------------------------- */
-
-.footbar {
-    flex-shrink: 0;
-    padding: 12px clamp(20px, 3vw, 44px);
-    border-top: 1px solid var(--border);
+#data-screen {
+    display: none;
+    width: 90%;
+    max-width: 1400px;
+    background: #1e293b;
+    padding: 60px;
+    border-radius: 24px;
+    box-shadow: 0 0 40px rgba(79,70,229,.3);
+    border: 4px solid #4f46e5;
     text-align: center;
-    font-size: 0.78rem;
-    color: var(--muted);
 }
 
-.footbar strong { color: var(--ink-soft, var(--ink)); font-weight: 700; }
+.label {
+    font-size: 32px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
 
-/* ---------------------------------------------------------
-   Narrow / portrait kiosk panels
-   --------------------------------------------------------- */
+.value {
+    font-size: 64px;
+    font-weight: bold;
+    color: #f8fafc;
+    margin-bottom: 40px;
+}
 
-@media (max-width: 760px) {
-    .setup-options { grid-template-columns: 1fr; }
-    .meta-row { flex-direction: column; gap: 18px; }
-    .meta-divider { width: 60%; height: 1px; align-self: center; }
-    .meta-item { text-align: center; }
-    .bento { grid-template-columns: repeat(2, 1fr); }
-    .bento-featured { grid-column: span 2; }
-    .logo-slot { display: none; }
+.name-value {
+    font-size: 96px;
+    color: #10b981;
+    text-shadow: 0 0 20px rgba(16,185,129,.4);
+}
+
+#status {
+    margin-top: 20px;
+    color: #94a3b8;
+}
+
+@keyframes pulse {
+    0% { opacity: .3; }
+    50% { opacity: 1; }
+    100% { opacity: .3; }
 }

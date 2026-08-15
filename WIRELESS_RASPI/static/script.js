@@ -1,8 +1,3 @@
-// ============================================================
-// VESIT Control Station — Main JavaScript Module
-// ============================================================
-
-// DOM Element Selections
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('file-input');
 const uploadSection = document.getElementById('upload-section');
@@ -13,37 +8,36 @@ const rowCount = document.getElementById('row-count');
 const resetBtn = document.getElementById('reset-btn');
 const navControls = document.getElementById('nav-controls');
 
-// State Management
 let rawTablesData = [];
-let visibleRows = [];   // Stores currently visible row data and element IDs
-let selectedIndex = -1; // Tracks currently highlighted row index
+let visibleRows = []; // Stores currently visible row data and element IDs
+let selectedIndex = -1; // Tracks which row is highlighted
 
-// Dynamic Visual Indicators (Left & Right Arrow Callouts)
 const leftArrow = document.createElement('div');
 const rightArrow = document.createElement('div');
 
-const arrowBaseStyles = `
-    position: fixed;
-    z-index: 1000;
-    width: 26px;
-    height: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    font-weight: 800;
-    color: var(--maroon, #5c1023);
-    background: var(--surface, #fffdf8);
-    border: 2px solid var(--maroon, #5c1023);
-    border-radius: 50%;
-    opacity: 0;
-    pointer-events: none;
-    box-shadow: 0 4px 12px rgba(26, 19, 16, 0.15);
-    transition: opacity 150ms ease, transform 150ms ease;
+leftArrow.className = `
+    fixed z-50
+    w-6 h-6
+    flex items-center justify-center
+    text-xs font-bold text-indigo-600
+    bg-white border-2 border-indigo-600
+    rounded-full
+    opacity-0
+    pointer-events-none
+    transition-opacity duration-150
 `;
 
-leftArrow.style.cssText = arrowBaseStyles;
-rightArrow.style.cssText = arrowBaseStyles;
+rightArrow.className = `
+    fixed z-50
+    w-6 h-6
+    flex items-center justify-center
+    text-xs font-bold text-indigo-600
+    bg-white border-2 border-indigo-600
+    rounded-full
+    opacity-0
+    pointer-events-none
+    transition-opacity duration-150
+`;
 
 leftArrow.innerHTML = '◀';
 rightArrow.innerHTML = '▶';
@@ -51,34 +45,11 @@ rightArrow.innerHTML = '▶';
 document.body.appendChild(leftArrow);
 document.body.appendChild(rightArrow);
 
-// ------------------------------------------------------------
-// File Upload & Drag-and-Drop Handlers
-// ------------------------------------------------------------
-dropzone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropzone.style.borderColor = 'var(--maroon)';
-    dropzone.style.backgroundColor = 'var(--cream-deep)';
-});
-
-dropzone.addEventListener('dragleave', () => {
-    dropzone.style.borderColor = 'var(--border)';
-    dropzone.style.backgroundColor = 'var(--surface)';
-});
-
-dropzone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropzone.style.borderColor = 'var(--border)';
-    dropzone.style.backgroundColor = 'var(--surface)';
-    if (e.dataTransfer.files.length) {
-        handleFile(e.dataTransfer.files[0]);
-    }
-});
-
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length) {
-        handleFile(e.target.files[0]);
-    }
-});
+// File handling
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('border-indigo-600', 'bg-indigo-50/20'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('border-indigo-600', 'bg-indigo-50/20'));
+dropzone.addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
 resetBtn.addEventListener('click', () => {
     uploadSection.classList.remove('hidden');
@@ -86,17 +57,14 @@ resetBtn.addEventListener('click', () => {
     navControls.classList.add('hidden');
     fileInput.value = '';
     selectedIndex = -1;
-    positionArrows(null);
 });
 
 async function handleFile(file) {
     const formData = new FormData();
     formData.append('file', file);
-
     try {
         const response = await fetch('/api/upload', { method: 'POST', body: formData });
         const result = await response.json();
-
         if (response.ok) {
             rawTablesData = result.tables;
             uploadSection.classList.add('hidden');
@@ -106,14 +74,9 @@ async function handleFile(file) {
         } else {
             alert(result.detail || 'Error parsing file.');
         }
-    } catch (err) {
-        alert('Server error. Ensure FastAPI backend is running.');
-    }
+    } catch (err) { alert('Server error. Ensure backend is running.'); }
 }
 
-// ------------------------------------------------------------
-// Table Rendering & Filtering
-// ------------------------------------------------------------
 function renderTables(tables, filterQuery = '') {
     tablesContainer.innerHTML = '';
     visibleRows = [];
@@ -123,139 +86,150 @@ function renderTables(tables, filterQuery = '') {
     tables.forEach((table) => {
         const filteredRows = table.rows.filter(row => {
             if (!filterQuery) return true;
-            return Object.values(row).some(val => 
-                String(val).toLowerCase().includes(filterQuery.toLowerCase())
-            );
+            return Object.values(row).some(val => String(val).toLowerCase().includes(filterQuery.toLowerCase()));
         });
 
         if (filteredRows.length === 0) return;
 
         const card = document.createElement('div');
-        card.className = 'tables-wrapper';
+        card.className = 'bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden';
 
-        let tableHTML = `<table style="width: max-content; min-width: 100%; border-collapse: collapse; text-align: left; font-size: 0.78rem;">
-            <thead><tr style="background: var(--cream-deep); border-bottom: 1px solid var(--border); color: var(--ink); font-weight: 700;">`;
-        
-        table.headers.forEach(h => {
-            tableHTML += `<th style="padding: 6px 10px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap;">${h}</th>`;
-        });
-        
-        tableHTML += `</tr></thead><tbody>`;
+        let tableHTML = `<div class="overflow-x-auto"><table class="w-full text-left text-xs border-collapse">
+            <thead><tr class="bg-slate-100/70 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">`;
+        table.headers.forEach(h => tableHTML += `<th class="py-3.5 px-4">${h}</th>`);
+        tableHTML += `</tr></thead><tbody class="divide-y divide-slate-100 font-medium text-slate-700">`;
 
         filteredRows.forEach((row) => {
             const rowId = `row-${globalRowCounter}`;
             visibleRows.push({ id: rowId, data: row });
 
-            tableHTML += `<tr id="${rowId}" class="selectable-row" onclick="selectRow(${globalRowCounter})" style="cursor: pointer; border-bottom: 1px solid var(--border); transition: background-color 150ms ease;">`;
-            
+            tableHTML += `<tr id="${rowId}" class="selectable-row transition-all duration-150 cursor-pointer" onclick="selectRow(${globalRowCounter})">`;
             table.headers.forEach(h => {
-                let val = row[h] !== undefined && row[h] !== null && row[h] !== '' ? row[h] : '-';
-                tableHTML += `<td style="padding: 6px 10px; white-space: nowrap; font-size: 0.78rem;">${val}</td>`;
+                let val = row[h] || '-';
+                tableHTML += `<td class="py-3 px-4 whitespace-nowrap">${val}</td>`;
             });
-            
             tableHTML += `</tr>`;
             globalRowCounter++;
         });
-
-        tableHTML += `</tbody></table>`;
+        tableHTML += `</tbody></table></div>`;
         card.innerHTML = tableHTML;
         tablesContainer.appendChild(card);
     });
 
-    rowCount.textContent = `${visibleRows.length} RECORDS FOUND`;
-
-    // Automatically highlight the first record if rows are present
-    if (visibleRows.length > 0) {
+    rowCount.textContent = `${visibleRows.length} records found`;
+    
+    // Auto-select first row if data exists
+    if(visibleRows.length > 0) {
         selectRow(0);
-    } else {
-        positionArrows(null);
     }
+
+    selectRow(0);
 }
 
-// Live Search Field Dispatch
-searchInput.addEventListener('input', (e) => {
-    renderTables(rawTablesData, e.target.value.trim());
-});
+// Search
+searchInput.addEventListener('input', (e) => renderTables(rawTablesData, e.target.value.trim()));
 
-// ------------------------------------------------------------
-// Row Selection & Visual Arrow Positioning
-// ------------------------------------------------------------
+// --- Navigation Logic ---
 function selectRow(index) {
     if (index < 0 || index >= visibleRows.length) return;
 
     selectedIndex = index;
 
-    // Reset styles on all table rows
+    // Remove highlight from all rows
     document.querySelectorAll('.selectable-row').forEach(el => {
-        el.style.backgroundColor = 'transparent';
-        el.style.borderLeft = 'none';
+        el.classList.remove(
+            'bg-indigo-100',
+            'border-l-4',
+            'border-indigo-600'
+        );
+        el.classList.add('bg-white');
     });
 
-    // Apply active styling to the currently selected row
-    const activeEl = document.getElementById(visibleRows[selectedIndex].id);
+    // Highlight selected row
+    const activeEl = document.getElementById(
+        visibleRows[selectedIndex].id
+    );
 
     if (activeEl) {
-        activeEl.style.backgroundColor = 'var(--cream-deep)';
-        activeEl.style.borderLeft = '4px solid var(--maroon)';
+        activeEl.classList.remove('bg-white');
+        activeEl.classList.add(
+            'bg-indigo-100',
+            'border-l-4',
+            'border-indigo-600'
+        );
 
         activeEl.scrollIntoView({
             behavior: 'smooth',
             block: 'center'
         });
 
-        // Delay arrow calculations briefly to account for smooth scroll movement
-        setTimeout(() => positionArrows(activeEl), 80);
+        // Position arrows after scrolling
+        setTimeout(() => positionArrows(activeEl), 100);
     }
 }
 
 function positionArrows(row) {
     if (!row) {
-        leftArrow.style.opacity = '0';
-        rightArrow.style.opacity = '0';
+        leftArrow.classList.remove('opacity-100');
+        leftArrow.classList.add('opacity-0');
+
+        rightArrow.classList.remove('opacity-100');
+        rightArrow.classList.add('opacity-0');
         return;
     }
 
     const rect = row.getBoundingClientRect();
+
+    // Vertical center of the selected row
     const centerY = rect.top + rect.height / 2;
 
-    leftArrow.style.left = `${Math.max(8, rect.left - 34)}px`;
+    // Put arrows just outside the row
+    leftArrow.style.left = `${Math.max(5, rect.left - 30)}px`;
     rightArrow.style.left = `${rect.right + 10}px`;
 
-    leftArrow.style.top = `${centerY - 13}px`;
-    rightArrow.style.top = `${centerY - 13}px`;
+    leftArrow.style.top = `${centerY - 12}px`;
+    rightArrow.style.top = `${centerY - 12}px`;
 
-    leftArrow.style.opacity = '1';
-    rightArrow.style.opacity = '1';
+    leftArrow.classList.remove('opacity-0');
+    leftArrow.classList.add('opacity-100');
+
+    rightArrow.classList.remove('opacity-0');
+    rightArrow.classList.add('opacity-100');
 }
 
-// Keep arrow overlay aligned during container/window scrolling
+// maintaining arrow position when scrolling
 window.addEventListener('scroll', () => {
     if (selectedIndex < 0 || selectedIndex >= visibleRows.length) return;
-    const activeEl = document.getElementById(visibleRows[selectedIndex].id);
-    if (activeEl) positionArrows(activeEl);
-}, true);
 
-// ------------------------------------------------------------
-// Server Dispatch & Payload Formulation
-// ------------------------------------------------------------
+    const activeEl = document.getElementById(
+        visibleRows[selectedIndex].id
+    );
+
+    if (activeEl) {
+        positionArrows(activeEl);
+    }
+});
+
 async function sendToRaspberryPi() {
     if (selectedIndex < 0 || selectedIndex >= visibleRows.length) return;
-
+    
     const rowData = visibleRows[selectedIndex].data;
+    
+    // Check for various ways the Excel might have named the Candidate/Candidature Type column
+    const candidateType = rowData['Candidate Type'] || 
+                        rowData['Candidature Type'] || 
+                        rowData['Candidatur e Type'] || 
+                        'N/A';
 
-    // Extract Candidate Type across common Excel header permutations
-    const candidateType = rowData['Candidate Type'] ||
-                          rowData['Candidature Type'] ||
-                          rowData['Candidatur e Type'] ||
-                          'N/A';
-
+    // Map the specific columns to the required JSON structure
     const payload = {
         category: candidateType,
-        id: rowData['DTE/CET APP. ID'] || rowData['Application ID'] || 'N/A',
-        name: rowData['Name'] || rowData['Student Name'] || 'N/A'
+        id: rowData['DTE/CET APP. ID'] || 'N/A',
+        name: rowData['Name'] || 'N/A'
     };
 
-    try {
+try {
+        // Now sending data to the laptop's own main server!
         const response = await fetch('/api/update_student', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -272,41 +246,21 @@ async function sendToRaspberryPi() {
     }
 }
 
-// ------------------------------------------------------------
-// Toast Notification
-// ------------------------------------------------------------
 function showToast() {
     const toast = document.getElementById('toast');
-    if (!toast) return;
-
-    // Handle class-based or inline-style toast visibility smoothly
-    toast.classList.add('is-visible');
-    toast.style.transform = 'translateY(0)';
-    toast.style.opacity = '1';
-
-    setTimeout(() => {
-        toast.classList.remove('is-visible');
-        toast.style.transform = 'translateY(100px)';
-        toast.style.opacity = '0';
-    }, 2500);
+    toast.classList.remove('translate-y-20', 'opacity-0');
+    setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2500);
 }
 
-// ------------------------------------------------------------
-// Navigation Event Listeners
-// ------------------------------------------------------------
-document.getElementById('btn-up')?.addEventListener('click', () => selectRow(selectedIndex - 1));
-document.getElementById('btn-down')?.addEventListener('click', () => selectRow(selectedIndex + 1));
-document.getElementById('btn-send')?.addEventListener('click', sendToRaspberryPi);
+// Button Event Listeners
+document.getElementById('btn-up').addEventListener('click', () => selectRow(selectedIndex - 1));
+document.getElementById('btn-down').addEventListener('click', () => selectRow(selectedIndex + 1));
+document.getElementById('btn-send').addEventListener('click', sendToRaspberryPi);
 
-// Keyboard Keybind Shortcuts (Arrow Up, Arrow Down, Enter)
+// Keyboard Event Listeners
 document.addEventListener('keydown', (e) => {
-    // Disable shortcuts if upload screen is currently visible
-    if (!uploadSection.classList.contains('hidden')) return;
-
-    // Allow user to freely type inside search box without hijacking left/right keys
-    if (document.activeElement === searchInput && e.key !== 'Enter' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') {
-        return;
-    }
+    if (uploadSection.classList.contains('hidden') === false) return; // Prevent navigation if no table
+    if (document.activeElement === searchInput && e.key !== 'Enter' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
 
     if (e.key === 'ArrowDown') {
         e.preventDefault();
