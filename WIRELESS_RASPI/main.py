@@ -12,7 +12,13 @@ app = FastAPI(title="Student Excel Data Viewer")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+DEPARTMENTS = ["CMPN", "INFT", "AURO", "EXTC", "AIDS", "ECS"]
+
 current_student = {}
+current_seats = {dept: None for dept in DEPARTMENTS}
+current_message = ""
+current_view = "student"  # "student" | "seats" | "message" — whichever the client should show right now
+
 active_connections = set()
 
 # Allow the display clients to call the API
@@ -125,6 +131,29 @@ async def upload_excel(file: UploadFile = File(...)):
         )
 
 
+def current_payload() -> dict:
+    """Whatever the client should be showing right now, in the typed
+    envelope every screen (student / seats / message) shares."""
+    if current_view == "seats":
+        return {"type": "seats", "data": current_seats}
+    if current_view == "message":
+        return {"type": "message", "data": current_message}
+    return {"type": "student", "data": current_student}
+
+
+async def broadcast(payload: dict):
+    global active_connections
+
+    dead = set()
+    for ws in active_connections:
+        try:
+            await ws.send_json(payload)
+        except Exception:
+            print("Disconnected!")
+            dead.add(ws)
+    active_connections -= dead
+
+
 @app.websocket("/ws")
 async def ws_endpoint(websocket: WebSocket):
     global active_connections
@@ -132,7 +161,7 @@ async def ws_endpoint(websocket: WebSocket):
     await websocket.accept()
     active_connections.add(websocket)
     print("New Connection!")
-    await websocket.send_json({"type": "full_sync", "data": current_student})  # send current state on connect
+    await websocket.send_json(current_payload())  # send current state on connect
     try:
         while True:
             await websocket.receive_text()  # keep alive / handle pings
@@ -141,24 +170,73 @@ async def ws_endpoint(websocket: WebSocket):
 
 
 @app.post("/api/update_student")
-async def broadcast_update(payload: dict):
-    global active_connections, current_student
+async def update_student(payload: dict):
+    global current_student, current_view
 
     current_student = payload
+    current_view = "student"
     print("Selected candidate:", payload)
 
-    dead = set()
-    for ws in active_connections:
-        try:
-            await ws.send_json(payload)
-        except Exception:
-            print('Disconnected!')
-            dead.add(ws)
-    active_connections -= dead
+    await broadcast({"type": "student", "data": current_student})
 
     return {
         "status": 200,
-        "student": payload
+        "student": current_student
+    }
+
+
+@app.post("/api/update_seats")
+async def update_seats(payload: dict):
+    """Body: any subset of {"CMPN": 12, "INFT": 5, ...}. Unknown keys are
+    ignored so a stray column from the client can't silently add a
+    seventh box."""
+    global current_seats, current_view
+
+    for dept in DEPARTMENTS:
+        if dept in payload:
+            current_seats[dept] = payload[dept]
+
+    current_view = "seats"
+    print("Seat counts updated:", current_seats)
+
+    await broadcast({"type": "seats", "data": current_seats})
+
+    return {
+        "status": 200,
+        "seats": current_seats
+    }
+
+
+@app.post("/api/update_message")
+async def update_message(payload: dict):
+    """Body: {"text": "Break"}"""
+    global current_message, current_view
+
+    current_message = str(payload.get("text", "")).strip()
+    current_view = "message"
+    print("Message updated:", current_message)
+
+    await broadcast({"type": "message", "data": current_message})
+
+    return {
+        "status": 200,
+        "message": current_message
+    }
+
+
+@app.post("/api/show_student")
+async def show_student():
+    """Switches the client back to the merit-list/candidate view without
+    changing the stored candidate — used by the control panel's
+    'Merit List' tab to snap displays back after Seats/Message."""
+    global current_view
+
+    current_view = "student"
+    await broadcast({"type": "student", "data": current_student})
+
+    return {
+        "status": 200,
+        "student": current_student
     }
 
 

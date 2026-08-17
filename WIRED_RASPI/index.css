@@ -105,3 +105,87 @@ body {
     50% { opacity: 1; }
     100% { opacity: .3; }
 }
+
+/* ============================================================
+   SEATS SCREEN
+   ============================================================ */
+
+#seats-screen {
+    display: none;
+    width: 92%;
+    max-width: 1500px;
+    text-align: center;
+}
+
+.seats-heading {
+    font-size: 2.2vw;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin: 0 0 32px;
+}
+
+.seats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.seat-box {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 20px;
+    padding: 36px 20px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,.4);
+}
+
+.seat-title {
+    font-size: 1.8vw;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: #f8fafc;
+    margin-bottom: 14px;
+}
+
+.seat-count {
+    font-size: 4.4vw;
+    font-weight: 800;
+    color: #6366f1;
+    line-height: 1;
+    margin-bottom: 10px;
+}
+
+.seat-sub {
+    font-size: 1.1vw;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+@media (max-width: 900px) {
+    .seats-grid { grid-template-columns: repeat(2, 1fr); }
+    .seat-title, .seats-heading { font-size: 1.4rem; }
+    .seat-count { font-size: 3rem; }
+    .seat-sub { font-size: 0.8rem; }
+}
+
+/* ============================================================
+   MESSAGE SCREEN
+   ============================================================ */
+
+#message-screen {
+    display: none;
+    width: 92%;
+    max-width: 1400px;
+    text-align: center;
+}
+
+.message-text {
+    font-size: 7vw;
+    font-weight: 800;
+    color: #f59e0b;
+    text-shadow: 0 0 30px rgba(245,158,11,.35);
+    line-height: 1.1;
+    word-break: break-word;
+}

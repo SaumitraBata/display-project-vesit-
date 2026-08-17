@@ -1,13 +1,27 @@
 // ========================================================
-// COMMON DISPLAY FUNCTION
+// SCREEN SWITCHING
+//
+// Only one of these is ever visible at a time. Every display
+// function below calls this first so screens never overlap.
+// ========================================================
+
+function showScreen(id) {
+    ["waiting-screen", "data-screen", "seats-screen", "message-screen"].forEach(screenId => {
+        document.getElementById(screenId).style.display =
+            (screenId === id) ? "block" : "none";
+    });
+}
+
+
+// ========================================================
+// STUDENT SCREEN
 // ========================================================
 
 function displayStudent(data) {
 
     if (!data) return;
 
-    document.getElementById("waiting-screen").style.display = "none";
-    document.getElementById("data-screen").style.display = "block";
+    showScreen("data-screen");
 
     document.getElementById("display-name").innerText =
         data.name || "-";
@@ -17,6 +31,73 @@ function displayStudent(data) {
 
     document.getElementById("display-category").innerText =
         data.category || "-";
+}
+
+
+// ========================================================
+// SEATS SCREEN
+//
+// data is a dict like {"CMPN": 12, "INFT": 5, ...}. Any
+// department not included keeps whatever it last showed,
+// so a partial update from the control panel doesn't blank
+// out the other five boxes.
+// ========================================================
+
+function displaySeats(data) {
+
+    if (!data) return;
+
+    showScreen("seats-screen");
+
+    Object.keys(data).forEach(dept => {
+        const el = document.getElementById(`seat-${dept}`);
+        if (el) {
+            const val = data[dept];
+            el.innerText = (val === null || val === undefined || val === "") ? "–" : val;
+        }
+    });
+}
+
+
+// ========================================================
+// MESSAGE SCREEN
+// ========================================================
+
+function displayMessage(text) {
+
+    showScreen("message-screen");
+
+    document.getElementById("message-text").innerText = text || "-";
+}
+
+
+// ========================================================
+// DISPATCH — routes an incoming payload to the right screen.
+//
+// Handles both the current typed envelope
+//   {"type": "student" | "seats" | "message", "data": ...}
+// and the older flat student-only shape, so this keeps
+// working even against an un-updated server.
+// ========================================================
+
+function handleIncoming(parsed) {
+
+    if (!parsed || typeof parsed !== "object") return;
+
+    if (parsed.type === "student") {
+        displayStudent(parsed.data);
+    } else if (parsed.type === "seats") {
+        displaySeats(parsed.data);
+    } else if (parsed.type === "message") {
+        displayMessage(parsed.data);
+    } else if (
+        parsed.category !== undefined &&
+        parsed.id !== undefined &&
+        parsed.name !== undefined
+    ) {
+        // Backward-compat: old flat student payload, no "type" wrapper.
+        displayStudent(parsed);
+    }
 }
 
 
@@ -59,9 +140,7 @@ function connectLaptop() {
             const data =
                 await response.json();
 
-            if (data && data.name) {
-                displayStudent(data);
-            }
+            handleIncoming(data);
 
         } catch (error) {
 
@@ -154,14 +233,7 @@ async function connectESP32() {
                     const data =
                         JSON.parse(line);
 
-                    // Only process our candidate JSON.
-                    if (
-                        data.category !== undefined &&
-                        data.id !== undefined &&
-                        data.name !== undefined
-                    ) {
-                        displayStudent(data);
-                    }
+                    handleIncoming(data);
 
                 } catch (error) {
 
