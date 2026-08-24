@@ -1,4 +1,18 @@
 // ========================================================
+// CONNECTION TARGET
+//
+// The laptop advertises itself on the network under this mDNS
+// hostname (see the zeroconf setup added to WIRELESS_RASPI/main.py),
+// so displays never need a manually typed IP address. Only change
+// this if you also rename HOSTNAME_LABEL on the host side.
+// ========================================================
+
+const WS_HOST = "acap-host.local";
+const WS_PORT = 8000;
+const RECONNECT_DELAY_MS = 3000;
+
+
+// ========================================================
 // SCREEN SWITCHING
 //
 // Only one of these is ever visible at a time. Every display
@@ -102,154 +116,58 @@ function handleIncoming(parsed) {
 
 
 // ========================================================
-// MODE 1: NORMAL RASPBERRY PI WITH WI-FI
-// ========================================================
-
-function connectLaptop() {
-
-    const ip =
-        document.getElementById("ip-input")
-        .value
-        .trim();
-
-    if (!ip) {
-        document.getElementById("status").innerText =
-            "Enter the laptop IP address first.";
-        return;
-    }
-
-    const targetUrl =
-        `http://${ip}:8000/api/current_student`;
-
-    document.getElementById("setup-screen").style.display =
-        "none";
-
-    document.getElementById("waiting-screen").style.display =
-        "block";
-
-    setInterval(async () => {
-
-        try {
-
-            const response =
-                await fetch(targetUrl);
-
-            if (!response.ok)
-                throw new Error("HTTP error");
-
-            const data =
-                await response.json();
-
-            handleIncoming(data);
-
-        } catch (error) {
-
-            console.log(
-                "Laptop connection error:",
-                error
-            );
-
-        }
-
-    }, 1000);
-}
-
-
-// ========================================================
-// MODE 2: MODIFIED RPI + ESP32
+// CONNECTION — WebSocket straight to the host over Wi-Fi.
 //
-// ESP32 is connected to the Pi through USB.
-// Chromium Web Serial reads /dev/ttyUSB0 through the
-// CP210x USB-UART interface.
+// The Pi now has its own WiFi dongle, so there's no more
+// ESP32-as-proxy hop: the browser opens the socket itself
+// and auto-reconnects if the host restarts or WiFi drops.
 // ========================================================
 
-async function connectESP32() {
+let socket = null;
+let reconnectTimer = null;
 
-    try {
-
-        if (!("serial" in navigator)) {
-
-            document.getElementById("status").innerText =
-                "This Chromium version does not support Web Serial.";
-
-            return;
-        }
-
-        const port =
-            await navigator.serial.requestPort();
-
-        await port.open({
-            baudRate: 115200
-        });
-
-        document.getElementById("setup-screen").style.display =
-            "none";
-
-        document.getElementById("waiting-screen").style.display =
-            "block";
-
-        document.getElementById("status").innerText =
-            "Connected to ESP32";
-
-        const decoder =
-            new TextDecoderStream();
-
-        port.readable.pipeTo(
-            decoder.writable
-        );
-
-        const reader =
-            decoder.readable.getReader();
-
-        let buffer = "";
-
-        while (true) {
-
-            const { value, done } =
-                await reader.read();
-
-            if (done) break;
-
-            buffer += value;
-
-            const lines =
-                buffer.split("\n");
-
-            buffer = lines.pop();
-
-            for (let line of lines) {
-
-                line = line.trim();
-
-                if (!line) continue;
-
-                console.log(
-                    "ESP32:",
-                    line
-                );
-
-                try {
-
-                    const data =
-                        JSON.parse(line);
-
-                    handleIncoming(data);
-
-                } catch (error) {
-
-                    // Ignore non-JSON ESP32 messages.
-                }
-            }
-        }
-
-    } catch (error) {
-
-        console.error(
-            "ESP32 connection error:",
-            error
-        );
-
-        document.getElementById("status").innerText =
-            "Could not connect to ESP32: " + error;
-    }
+function setStatus(text) {
+    const statusEl = document.getElementById("status");
+    if (statusEl) statusEl.innerText = text;
 }
+
+function connectWS() {
+
+    setStatus(`Connecting to ${WS_HOST}...`);
+
+    socket = new WebSocket(`ws://${WS_HOST}:${WS_PORT}/ws`);
+
+    socket.onopen = () => {
+        setStatus("Connected");
+        document.getElementById("setup-screen").style.display = "none";
+        showScreen("waiting-screen");
+    };
+
+    socket.onmessage = (event) => {
+        try {
+            const parsed = JSON.parse(event.data);
+            handleIncoming(parsed);
+        } catch (error) {
+            console.log("Bad payload from host:", error);
+        }
+    };
+
+    socket.onclose = () => {
+        document.getElementById("setup-screen").style.display = "block";
+        ["waiting-screen", "data-screen", "seats-screen", "message-screen"].forEach(id => {
+            document.getElementById(id).style.display = "none";
+        });
+        setStatus(`Disconnected from ${WS_HOST}. Retrying...`);
+
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connectWS, RECONNECT_DELAY_MS);
+    };
+
+    socket.onerror = () => {
+        // onclose fires right after this and handles the retry,
+        // so this just avoids an unhandled-error console spam.
+        socket.close();
+    };
+}
+
+window.addEventListener("DOMContentLoaded", connectWS);

@@ -3,11 +3,76 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from zeroconf import ServiceInfo
+from zeroconf.asyncio import AsyncZeroconf
+from contextlib import asynccontextmanager
 import pandas as pd
 import io
 import json
+import socket
 
-app = FastAPI(title="Student Excel Data Viewer")
+# ============================================================
+# mDNS HOSTNAME (no more typing an IP into the display client)
+#
+# This laptop advertises itself on the local network as
+# HOSTNAME_LABEL + ".local" using zeroconf, which implements
+# mDNS itself rather than relying on OS-level Bonjour/Avahi —
+# so it works the same on Windows, macOS, and Linux. Any
+# display on the same WiFi (Raspberry Pi OS resolves .local
+# names out of the box) can then reach it at a fixed address
+# that never needs updating, even if the laptop's IP changes.
+#
+# WIRED_RASPI/backend.js points at this same hostname via
+# WS_HOST — keep the two in sync if you ever rename it.
+#
+# Uses zeroconf's ASYNC API specifically (AsyncZeroconf), run
+# inside FastAPI's own event loop via lifespan. The sync
+# Zeroconf() class spins up its own background thread with its
+# own event loop, which on Windows fights with uvicorn's loop
+# and throws EventLoopBlocked — the async API avoids that
+# entirely since it shares the loop FastAPI is already running.
+# ============================================================
+HOSTNAME_LABEL = "acap-host"
+
+
+def _get_local_ip() -> str:
+    """Finds this machine's LAN IP without actually sending any
+    traffic — connect() on a UDP socket just asks the OS to pick
+    the interface/route that would be used."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except Exception:
+        return "127.0.0.1"
+    finally:
+        s.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    local_ip = _get_local_ip()
+
+    service_info = ServiceInfo(
+        "_acap._tcp.local.",
+        f"{HOSTNAME_LABEL}._acap._tcp.local.",
+        addresses=[socket.inet_aton(local_ip)],
+        port=8000,
+        server=f"{HOSTNAME_LABEL}.local.",
+    )
+
+    azeroconf = AsyncZeroconf()
+    await azeroconf.async_register_service(service_info)
+
+    print(f"Advertising as {HOSTNAME_LABEL}.local ({local_ip}) via mDNS")
+
+    yield
+
+    await azeroconf.async_unregister_service(service_info)
+    await azeroconf.async_close()
+
+
+app = FastAPI(title="Student Excel Data Viewer", lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -247,5 +312,5 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True
+        reload=False
     )
