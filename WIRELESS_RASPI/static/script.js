@@ -75,6 +75,7 @@ async function handleFile(file) {
     try {
         const response = await fetch('/api/upload', { method: 'POST', body: formData });
         const result = await response.json();
+        console.log(result);
         if (response.ok) {
             rawTablesData = result.tables;
             uploadSection.classList.add('hidden');
@@ -176,7 +177,7 @@ async function sendToRaspberryPi() {
         category: candidateType,
         id: rowData['DTE/CET APP. ID'] || 'N/A',
         name: rowData['Name'] || 'N/A',
-        sno: rowData['Sr. No'] ?? 'N/A'
+        sno: rowData['Registration Id'] ?? 'N/A'
     };
     console.log(payload);
 
