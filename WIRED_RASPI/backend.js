@@ -37,6 +37,9 @@ function displayStudent(data) {
 
     showScreen("data-screen");
 
+    document.getElementById("display-sno").innerText =
+        (data.sno !== undefined && data.sno !== null && data.sno !== "") ? `${data.sno}. ` : "";
+
     document.getElementById("display-name").innerText =
         data.name || "-";
 

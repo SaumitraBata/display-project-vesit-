@@ -79,6 +79,18 @@ templates = Jinja2Templates(directory="templates")
 
 DEPARTMENTS = ["CMPN", "INFT", "AURO", "EXTC", "AIDS", "ECS"]
 
+# Column headers vary slightly depending on how the source sheet was
+# formatted, so accept any of these and normalize to "sno" — the key
+# WIRED_RASPI/backend.js actually reads.
+SNO_KEYS = ["sno", "Sno", "SNo", "Sr. No", "Sr.No", "Sr No", "SrNo", "S.No", "S.No.", "Serial No", "Serial Number"]
+
+
+def _extract_sno(payload: dict):
+    for key in SNO_KEYS:
+        if key in payload and payload[key] != "":
+            return payload[key]
+    return None
+
 current_student = {}
 current_seats = {dept: None for dept in DEPARTMENTS}
 current_message = ""
@@ -122,6 +134,7 @@ async def upload_excel(file: UploadFile = File(...)):
         tables = []
         current_headers = None
         current_rows = []
+        row_counter = 0
 
         for _, row in df_raw.iterrows():
             row_vals = [
@@ -145,6 +158,7 @@ async def upload_excel(file: UploadFile = File(...)):
                         "rows": current_rows
                     })
                     current_rows = []
+                    row_counter = 0
 
                 current_headers = [
                     v.replace("\n", " ")
@@ -157,10 +171,12 @@ async def upload_excel(file: UploadFile = File(...)):
                     row_data = row_vals[:len(current_headers)]
 
                     if any(row_data):
+                        row_counter += 1
                         row_dict = {
                             current_headers[i]: row_data[i]
                             for i in range(len(row_data))
                         }
+                        row_dict["Sr. No"] = row_counter
                         current_rows.append(row_dict)
 
         if current_headers and current_rows:
@@ -179,9 +195,13 @@ async def upload_excel(file: UploadFile = File(...)):
                 for c in df.columns
             ]
 
+            rows = df.to_dict(orient="records")
+            for i, row_dict in enumerate(rows, start=1):
+                row_dict["Sr. No"] = i
+
             tables.append({
                 "headers": list(df.columns),
-                "rows": df.to_dict(orient="records")
+                "rows": rows
             })
 
         return {
@@ -238,9 +258,15 @@ async def ws_endpoint(websocket: WebSocket):
 async def update_student(payload: dict):
     global current_student, current_view
 
-    current_student = payload
+    current_student = dict(payload)
+
+    if "sno" not in current_student:
+        sno = _extract_sno(payload)
+        if sno is not None:
+            current_student["sno"] = sno
+
     current_view = "student"
-    print("Selected candidate:", payload)
+    print("Selected candidate:", current_student)
 
     await broadcast({"type": "student", "data": current_student})
 

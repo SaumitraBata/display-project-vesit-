@@ -93,6 +93,37 @@ body {
     font-size: 96px;
     color: #10b981;
     text-shadow: 0 0 20px rgba(16,185,129,.4);
+    margin-bottom: 40px;
+}
+
+#display-sno {
+    color: #94a3b8;
+    margin-right: 20px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.detail-row:last-child {
+    margin-bottom: 0;
+}
+
+.detail-label {
+    font-size: 28px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.detail-value {
+    font-size: 48px;
+    font-weight: bold;
+    color: #f8fafc;
 }
 
 #status {
