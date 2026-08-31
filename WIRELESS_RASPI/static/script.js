@@ -175,8 +175,10 @@ async function sendToRaspberryPi() {
     const payload = {
         category: candidateType,
         id: rowData['DTE/CET APP. ID'] || 'N/A',
-        name: rowData['Name'] || 'N/A'
+        name: rowData['Name'] || 'N/A',
+        sno: rowData['Sr. No'] ?? 'N/A'
     };
+    console.log(payload);
 
     try {
         const response = await fetch('/api/update_student', {
@@ -184,6 +186,8 @@ async function sendToRaspberryPi() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+        console.log('..');
+        console.log(payload);
 
         if (response.ok) {
             showToast();

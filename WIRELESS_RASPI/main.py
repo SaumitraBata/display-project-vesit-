@@ -158,7 +158,9 @@ async def upload_excel(file: UploadFile = File(...)):
                         "rows": current_rows
                     })
                     current_rows = []
-                    row_counter = 0
+                    # NOTE: row_counter is NOT reset here — Sr. No tracks
+                    # each entry's position in the sheet as a whole, not
+                    # its position within just this table.
 
                 current_headers = [
                     v.replace("\n", " ")
@@ -338,5 +340,5 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=False
+        reload=True
     )
