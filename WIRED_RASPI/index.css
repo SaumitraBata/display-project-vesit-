@@ -96,15 +96,10 @@ body {
     margin-bottom: 40px;
 }
 
-#display-sno {
-    color: #94a3b8;
-    margin-right: 20px;
-}
-
 .detail-row {
     display: flex;
     justify-content: center;
-    align-items: baseline;
+    align-items: center;
     gap: 20px;
     margin-bottom: 24px;
 }
@@ -114,16 +109,18 @@ body {
 }
 
 .detail-label {
-    font-size: 28px;
+    font-size: 34px;
     color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 2px;
+    line-height: 1;
 }
 
 .detail-value {
-    font-size: 48px;
+    font-size: 56px;
     font-weight: bold;
     color: #f8fafc;
+    line-height: 1;
 }
 
 #status {
