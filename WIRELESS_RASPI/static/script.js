@@ -1,3 +1,45 @@
+// ========================================================
+// TAB SWITCHING — Merit List / Seats / Message
+//
+// This only controls which admin panel is visible here on
+// the control station. It does NOT change what the displays
+// are showing — that only changes when you hit one of the
+// "Send to Displays" buttons.
+// ========================================================
+
+function switchTab(tab) {
+
+    const tabs = ['merit', 'seats', 'message'];
+
+    tabs.forEach(t => {
+        const panel = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`tabbtn-${t}`);
+
+        const isActive = t === tab;
+
+        panel.classList.toggle('hidden', !isActive);
+
+        btn.classList.toggle('bg-indigo-600', isActive);
+        btn.classList.toggle('text-white', isActive);
+        btn.classList.toggle('shadow-sm', isActive);
+        btn.classList.toggle('text-slate-600', !isActive);
+        btn.classList.toggle('hover:bg-white', !isActive);
+    });
+
+    // Nav controls (up/down/send for the merit list) only make sense
+    // while the Merit List tab is open and a file is loaded.
+    if (tab !== 'merit' || visibleRows.length === 0) {
+        navControls.classList.add('hidden');
+    } else {
+        navControls.classList.remove('hidden');
+    }
+}
+
+
+// ========================================================
+// MERIT LIST
+// ========================================================
+
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('file-input');
 const uploadSection = document.getElementById('upload-section');
@@ -24,6 +66,7 @@ resetBtn.addEventListener('click', () => {
     navControls.classList.add('hidden');
     fileInput.value = '';
     selectedIndex = -1;
+    visibleRows = [];
 });
 
 async function handleFile(file) {
@@ -32,6 +75,7 @@ async function handleFile(file) {
     try {
         const response = await fetch('/api/upload', { method: 'POST', body: formData });
         const result = await response.json();
+        console.log(result);
         if (response.ok) {
             rawTablesData = result.tables;
             uploadSection.classList.add('hidden');
@@ -84,10 +128,13 @@ function renderTables(tables, filterQuery = '') {
     });
 
     rowCount.textContent = `${visibleRows.length} records found`;
-    
+
     // Auto-select first row if data exists
-    if(visibleRows.length > 0) {
+    if (visibleRows.length > 0) {
         selectRow(0);
+        navControls.classList.remove('hidden');
+    } else {
+        navControls.classList.add('hidden');
     }
 }
 
@@ -98,47 +145,51 @@ searchInput.addEventListener('input', (e) => renderTables(rawTablesData, e.targe
 function selectRow(index) {
     if (index < 0 || index >= visibleRows.length) return;
     selectedIndex = index;
-    
-    // Remove highlight from all
+
+    // Remove highlight from all rows
     document.querySelectorAll('.selectable-row').forEach(el => {
-        el.classList.remove('bg-indigo-100', 'border-l-4', 'border-indigo-600');
+        el.classList.remove('bg-indigo-100', 'font-semibold');
         el.classList.add('bg-white');
     });
 
-    // Add highlight to selected
+    // Highlight selected row
     const activeEl = document.getElementById(visibleRows[selectedIndex].id);
     if (activeEl) {
         activeEl.classList.remove('bg-white');
-        activeEl.classList.add('bg-indigo-100', 'border-l-4', 'border-indigo-600');
+        activeEl.classList.add('bg-indigo-100', 'font-semibold');
         activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
 
 async function sendToRaspberryPi() {
     if (selectedIndex < 0 || selectedIndex >= visibleRows.length) return;
-    
+
     const rowData = visibleRows[selectedIndex].data;
-    
+
     // Check for various ways the Excel might have named the Candidate/Candidature Type column
-    const candidateType = rowData['Candidate Type'] || 
-                        rowData['Candidature Type'] || 
-                        rowData['Candidatur e Type'] || 
+    const candidateType = rowData['Candidate Type'] ||
+                        rowData['Candidature Type'] ||
+                        rowData['Candidatur e Type'] ||
                         'N/A';
 
     // Map the specific columns to the required JSON structure
     const payload = {
         category: candidateType,
         id: rowData['DTE/CET APP. ID'] || 'N/A',
-        name: rowData['Name'] || 'N/A'
+        name: rowData['Name'] || 'N/A',
+        // The backend sets this to the actual Excel sheet row number.
+        sno: rowData['Sr. No'] ?? 'N/A'
     };
+    console.log(payload);
 
-try {
-        // Now sending data to the laptop's own main server!
-        const response = await fetch('/api/broadcast', {
+    try {
+        const response = await fetch('/api/update_student', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+        console.log('..');
+        console.log(payload);
 
         if (response.ok) {
             showToast();
@@ -150,19 +201,109 @@ try {
     }
 }
 
+document.getElementById('btn-up').addEventListener('click', () => selectRow(selectedIndex - 1));
+document.getElementById('btn-down').addEventListener('click', () => selectRow(selectedIndex + 1));
+document.getElementById('btn-send').addEventListener('click', sendToRaspberryPi);
+
+
+// ========================================================
+// SEATS TAB
+// ========================================================
+
+const DEPARTMENTS = ["CMPN", "INFT", "AURO", "EXTC", "AIDS", "ECS"];
+
+async function sendSeats() {
+
+    const payload = {};
+
+    DEPARTMENTS.forEach(dept => {
+        const input = document.getElementById(`seat-${dept}`);
+        const val = input.value.trim();
+        if (val !== "") {
+            payload[dept] = Number(val);
+        }
+    });
+
+    try {
+        const response = await fetch('/api/update_seats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            showToast();
+        } else {
+            alert("Failed to update seat counts.");
+        }
+    } catch (err) {
+        alert("Connection error. Ensure your main FastAPI server is running.");
+    }
+}
+
+document.getElementById('btn-send-seats').addEventListener('click', sendSeats);
+
+
+// ========================================================
+// MESSAGE TAB
+// ========================================================
+
+const messageInput = document.getElementById('message-input');
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        messageInput.value = btn.dataset.text;
+        sendMessage();
+    });
+});
+
+async function sendMessage() {
+
+    const text = messageInput.value.trim();
+
+    if (!text) {
+        alert("Enter a message, or pick one of the presets, first.");
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/update_message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        });
+
+        if (response.ok) {
+            showToast();
+        } else {
+            alert("Failed to send message.");
+        }
+    } catch (err) {
+        alert("Connection error. Ensure your main FastAPI server is running.");
+    }
+}
+
+document.getElementById('btn-send-message').addEventListener('click', sendMessage);
+
+
+// ========================================================
+// TOAST
+// ========================================================
+
 function showToast() {
     const toast = document.getElementById('toast');
     toast.classList.remove('translate-y-20', 'opacity-0');
     setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2500);
 }
 
-// Button Event Listeners
-document.getElementById('btn-up').addEventListener('click', () => selectRow(selectedIndex - 1));
-document.getElementById('btn-down').addEventListener('click', () => selectRow(selectedIndex + 1));
-document.getElementById('btn-send').addEventListener('click', sendToRaspberryPi);
 
-// Keyboard Event Listeners
+// ========================================================
+// KEYBOARD SHORTCUTS — only active on the Merit List tab
+// ========================================================
+
 document.addEventListener('keydown', (e) => {
+    const meritTabActive = !document.getElementById('tab-merit').classList.contains('hidden');
+    if (!meritTabActive) return;
     if (uploadSection.classList.contains('hidden') === false) return; // Prevent navigation if no table
     if (document.activeElement === searchInput && e.key !== 'Enter' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
 

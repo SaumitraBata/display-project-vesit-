@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACAP Smart Display</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+
+    <div id="setup-screen">
+
+        <h2 style="margin-top:0;">
+            ACAP Smart Display
+        </h2>
+
+        <p id="status" style="color:#94a3b8;">
+            Connecting...
+        </p>
+
+    </div>
+
+
+    <div id="waiting-screen">
+        WAITING FOR DATA...
+    </div>
+
+
+    <div id="data-screen">
+
+        <div class="detail-row">
+            <span class="detail-label">Merit Number</span>
+            <span class="detail-value" id="display-sno">-</span>
+        </div>
+
+        <div class="value name-value" id="display-name">-</div>
+
+        <div class="detail-row">
+            <span class="detail-label">Application ID</span>
+            <span class="detail-value" id="display-id">-</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="detail-label">Category</span>
+            <span class="detail-value" id="display-category">-</span>
+        </div>
+    </div>
+
+
+    <div id="seats-screen">
+
+        <h2 class="seats-heading">Seats Available</h2>
+
+        <div class="seats-grid">
+            <div class="seat-box">
+                <div class="seat-title">CMPN</div>
+                <div class="seat-count" id="seat-CMPN">&#8211;</div>
+                <div class="seat-sub">seats</div>
+            </div>
+            <div class="seat-box">
+                <div class="seat-title">INFT</div>
+                <div class="seat-count" id="seat-INFT">&#8211;</div>
+                <div class="seat-sub">seats</div>
+            </div>
+            <div class="seat-box">
+                <div class="seat-title">AURO</div>
+                <div class="seat-count" id="seat-AURO">&#8211;</div>
+                <div class="seat-sub">seats</div>
+            </div>
+            <div class="seat-box">
+                <div class="seat-title">EXTC</div>
+                <div class="seat-count" id="seat-EXTC">&#8211;</div>
+                <div class="seat-sub">seats</div>
+            </div>
+            <div class="seat-box">
+                <div class="seat-title">AIDS</div>
+                <div class="seat-count" id="seat-AIDS">&#8211;</div>
+                <div class="seat-sub">seats</div>
+            </div>
+            <div class="seat-box">
+                <div class="seat-title">ECS</div>
+                <div class="seat-count" id="seat-ECS">&#8211;</div>
+                <div class="seat-sub">seats</div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <div id="message-screen">
+        <div class="message-text" id="message-text">-</div>
+    </div>
+
+
+    <script src="backend.js"></script>
+</body>
+</html>
