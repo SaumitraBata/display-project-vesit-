@@ -134,9 +134,13 @@ async def upload_excel(file: UploadFile = File(...)):
         tables = []
         current_headers = None
         current_rows = []
-        row_counter = 0
 
-        for _, row in df_raw.iterrows():
+        for excel_row_index, row in df_raw.iterrows():
+            # df_raw still retains the original Excel row index even after
+            # dropping completely empty rows. Convert pandas' 0-based index
+            # to the actual 1-based Excel row number.
+            excel_row_number = int(excel_row_index)
+
             row_vals = [
                 str(val).strip() if pd.notna(val) else ""
                 for val in row
@@ -173,12 +177,14 @@ async def upload_excel(file: UploadFile = File(...)):
                     row_data = row_vals[:len(current_headers)]
 
                     if any(row_data):
-                        row_counter += 1
                         row_dict = {
                             current_headers[i]: row_data[i]
                             for i in range(len(row_data))
                         }
-                        row_dict["Sr. No"] = row_counter
+
+                        # Serial number = the physical row position in the
+                        # Excel sheet, not the position within the table.
+                        row_dict["Sr. No"] = excel_row_number
                         current_rows.append(row_dict)
 
         if current_headers and current_rows:
@@ -198,7 +204,9 @@ async def upload_excel(file: UploadFile = File(...)):
             ]
 
             rows = df.to_dict(orient="records")
-            for i, row_dict in enumerate(rows, start=1):
+            for i, row_dict in enumerate(rows, start=2):
+                # The normal pandas read uses the first Excel row as the
+                # header, so data rows start at Excel row 2.
                 row_dict["Sr. No"] = i
 
             tables.append({

@@ -177,7 +177,8 @@ async function sendToRaspberryPi() {
         category: candidateType,
         id: rowData['DTE/CET APP. ID'] || 'N/A',
         name: rowData['Name'] || 'N/A',
-        sno: rowData['Registration Id'] ?? 'N/A'
+        // The backend sets this to the actual Excel sheet row number.
+        sno: rowData['Sr. No'] ?? 'N/A'
     };
     console.log(payload);
 
