@@ -176,7 +176,7 @@ async def upload_excel(file: UploadFile = File(...)):
                 if current_headers:
                     row_data = row_vals[:len(current_headers)]
 
-                    if any(row_data):
+        if any(row_data):
 			row_dict = {
 			    current_headers[i]: row_data[i]
 			    for i in range(len(row_data))
