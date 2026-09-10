@@ -177,15 +177,15 @@ async def upload_excel(file: UploadFile = File(...)):
                     row_data = row_vals[:len(current_headers)]
 
                     if any(row_data):
-                        row_dict = {
-                            current_headers[i]: row_data[i]
-                            for i in range(len(row_data))
-                        }
+			row_dict = {
+			    current_headers[i]: row_data[i]
+			    for i in range(len(row_data))
+			}
 
-                        # Serial number = the physical row position in the
-                        # Excel sheet, not the position within the table.
-                        row_dict["Sr. No"] = excel_row_number
-                        current_rows.append(row_dict)
+    		        # Use the "Merit No." column as the serial number
+			# instead of the physical Excel row number.
+			row_dict["Sr. No"] = row_dict.get("Merit No.", "")
+			current_rows.append(row_dict)
 
         if current_headers and current_rows:
             tables.append({
@@ -204,10 +204,8 @@ async def upload_excel(file: UploadFile = File(...)):
             ]
 
             rows = df.to_dict(orient="records")
-            for i, row_dict in enumerate(rows, start=2):
-                # The normal pandas read uses the first Excel row as the
-                # header, so data rows start at Excel row 2.
-                row_dict["Sr. No"] = i
+	    for row_dict in rows:
+	        row_dict["Sr. No"] = row_dict.get("Merit No.", "")
 
             tables.append({
                 "headers": list(df.columns),
