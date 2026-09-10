@@ -175,8 +175,8 @@ async function sendToRaspberryPi() {
     // Map the specific columns to the required JSON structure
     const payload = {
         category: candidateType,
-        id: rowData['DTE/CET APP. ID'] || 'N/A',
-        name: rowData['Name'] || 'N/A',
+        id: rowData['Application ID'] || 'N/A',
+        name: rowData['Candidate Name'] || 'N/A',
         // The backend sets this to the actual Excel sheet row number.
         sno: rowData['Sr. No'] ?? 'N/A'
     };
