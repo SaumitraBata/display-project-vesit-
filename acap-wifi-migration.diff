@@ -1,0 +1,593 @@
+diff --git a/.gitignore b/.gitignore
+index cfad139..adba66e 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1 +1,2 @@
+-*/__pycache__/*
+\ No newline at end of file
++*/__pycache__/*
++WIRELESS_RASPI/.venv/
+\ No newline at end of file
+diff --git a/WIRED_RASPI/backend.js b/WIRED_RASPI/backend.js
+index 26aae8d..a11b9e3 100644
+--- a/WIRED_RASPI/backend.js
++++ b/WIRED_RASPI/backend.js
+@@ -1,3 +1,17 @@
++// ========================================================
++// CONNECTION TARGET
++//
++// The laptop advertises itself on the network under this mDNS
++// hostname (see the zeroconf setup added to WIRELESS_RASPI/main.py),
++// so displays never need a manually typed IP address. Only change
++// this if you also rename HOSTNAME_LABEL on the host side.
++// ========================================================
++
++const WS_HOST = "acap-host.local";
++const WS_PORT = 8000;
++const RECONNECT_DELAY_MS = 3000;
++
++
+ // ========================================================
+ // SCREEN SWITCHING
+ //
+@@ -102,154 +116,58 @@ function handleIncoming(parsed) {
+ 
+ 
+ // ========================================================
+-// MODE 1: NORMAL RASPBERRY PI WITH WI-FI
++// CONNECTION — WebSocket straight to the host over Wi-Fi.
++//
++// The Pi now has its own WiFi dongle, so there's no more
++// ESP32-as-proxy hop: the browser opens the socket itself
++// and auto-reconnects if the host restarts or WiFi drops.
+ // ========================================================
+ 
+-function connectLaptop() {
++let socket = null;
++let reconnectTimer = null;
+ 
+-    const ip =
+-        document.getElementById("ip-input")
+-        .value
+-        .trim();
+-
+-    if (!ip) {
+-        document.getElementById("status").innerText =
+-            "Enter the laptop IP address first.";
+-        return;
+-    }
++function setStatus(text) {
++    const statusEl = document.getElementById("status");
++    if (statusEl) statusEl.innerText = text;
++}
+ 
+-    const targetUrl =
+-        `http://${ip}:8000/api/current_student`;
++function connectWS() {
+ 
+-    document.getElementById("setup-screen").style.display =
+-        "none";
++    setStatus(`Connecting to ${WS_HOST}...`);
+ 
+-    document.getElementById("waiting-screen").style.display =
+-        "block";
++    socket = new WebSocket(`ws://${WS_HOST}:${WS_PORT}/ws`);
+ 
+-    setInterval(async () => {
++    socket.onopen = () => {
++        setStatus("Connected");
++        document.getElementById("setup-screen").style.display = "none";
++        showScreen("waiting-screen");
++    };
+ 
++    socket.onmessage = (event) => {
+         try {
+-
+-            const response =
+-                await fetch(targetUrl);
+-
+-            if (!response.ok)
+-                throw new Error("HTTP error");
+-
+-            const data =
+-                await response.json();
+-
+-            handleIncoming(data);
+-
++            const parsed = JSON.parse(event.data);
++            handleIncoming(parsed);
+         } catch (error) {
+-
+-            console.log(
+-                "Laptop connection error:",
+-                error
+-            );
+-
+-        }
+-
+-    }, 1000);
+-}
+-
+-
+-// ========================================================
+-// MODE 2: MODIFIED RPI + ESP32
+-//
+-// ESP32 is connected to the Pi through USB.
+-// Chromium Web Serial reads /dev/ttyUSB0 through the
+-// CP210x USB-UART interface.
+-// ========================================================
+-
+-async function connectESP32() {
+-
+-    try {
+-
+-        if (!("serial" in navigator)) {
+-
+-            document.getElementById("status").innerText =
+-                "This Chromium version does not support Web Serial.";
+-
+-            return;
++            console.log("Bad payload from host:", error);
+         }
++    };
+ 
+-        const port =
+-            await navigator.serial.requestPort();
+-
+-        await port.open({
+-            baudRate: 115200
++    socket.onclose = () => {
++        document.getElementById("setup-screen").style.display = "block";
++        ["waiting-screen", "data-screen", "seats-screen", "message-screen"].forEach(id => {
++            document.getElementById(id).style.display = "none";
+         });
++        setStatus(`Disconnected from ${WS_HOST}. Retrying...`);
+ 
+-        document.getElementById("setup-screen").style.display =
+-            "none";
+-
+-        document.getElementById("waiting-screen").style.display =
+-            "block";
+-
+-        document.getElementById("status").innerText =
+-            "Connected to ESP32";
+-
+-        const decoder =
+-            new TextDecoderStream();
+-
+-        port.readable.pipeTo(
+-            decoder.writable
+-        );
+-
+-        const reader =
+-            decoder.readable.getReader();
+-
+-        let buffer = "";
+-
+-        while (true) {
+-
+-            const { value, done } =
+-                await reader.read();
+-
+-            if (done) break;
+-
+-            buffer += value;
+-
+-            const lines =
+-                buffer.split("\n");
++        clearTimeout(reconnectTimer);
++        reconnectTimer = setTimeout(connectWS, RECONNECT_DELAY_MS);
++    };
+ 
+-            buffer = lines.pop();
+-
+-            for (let line of lines) {
+-
+-                line = line.trim();
+-
+-                if (!line) continue;
+-
+-                console.log(
+-                    "ESP32:",
+-                    line
+-                );
+-
+-                try {
+-
+-                    const data =
+-                        JSON.parse(line);
+-
+-                    handleIncoming(data);
+-
+-                } catch (error) {
+-
+-                    // Ignore non-JSON ESP32 messages.
+-                }
+-            }
+-        }
+-
+-    } catch (error) {
+-
+-        console.error(
+-            "ESP32 connection error:",
+-            error
+-        );
++    socket.onerror = () => {
++        // onclose fires right after this and handles the retry,
++        // so this just avoids an unhandled-error console spam.
++        socket.close();
++    };
++}
+ 
+-        document.getElementById("status").innerText =
+-            "Could not connect to ESP32: " + error;
+-    }
+-}
+\ No newline at end of file
++window.addEventListener("DOMContentLoaded", connectWS);
+diff --git a/WIRED_RASPI/esp32_wifi_proxy/esp32_wifi_proxy.ino b/WIRED_RASPI/esp32_wifi_proxy/esp32_wifi_proxy.ino
+deleted file mode 100644
+index 52fe3c3..0000000
+--- a/WIRED_RASPI/esp32_wifi_proxy/esp32_wifi_proxy.ino
++++ /dev/null
+@@ -1,89 +0,0 @@
+-#include <WiFi.h>
+-#include <WebSocketsClient.h>
+-
+-// ============================================================
+-// ESP32 Wi-Fi + WebSocket configuration
+-// ============================================================
+-
+-const char* ssid = "YOUR_WIFI_SSID";
+-const char* password = "YOUR_WIFI_PASSWORD";
+-
+-const char* wsHost = "YOUR_HOST_IP";  // Pi A's IP
+-const uint16_t wsPort = 8000;          // FastAPI/uvicorn port
+-const char* wsPath = "/ws";
+-
+-WebSocketsClient webSocket;
+-
+-// ============================================================
+-// WebSocket event handler
+-// ============================================================
+-void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
+-
+-  switch (type) {
+-
+-    case WStype_DISCONNECTED:
+-      Serial.println("[WS] Disconnected from Pi A");
+-      break;
+-
+-    case WStype_CONNECTED:
+-      Serial.println("[WS] Connected to Pi A");
+-      break;
+-
+-    case WStype_TEXT: {
+-      // Forward payload to Pi B over UART, same shape as your old code
+-      String data = String((char*)payload);
+-      data.trim();
+-
+-      if (data.length() > 0) {
+-        // Forward JSON to Raspberry Pi B
+-        Serial.println(data);
+-      }
+-      break;
+-    }
+-
+-    case WStype_ERROR:
+-      Serial.println("[WS] Error");
+-      break;
+-
+-    default:
+-      break;
+-  }
+-}
+-
+-void setup() {
+-
+-  Serial.begin(115200);
+-  delay(1000);
+-
+-  Serial.println();
+-  Serial.println("Starting ESP32...");
+-
+-  WiFi.begin(ssid, password);
+-
+-  Serial.print("Connecting to Wi-Fi");
+-  while (WiFi.status() != WL_CONNECTED) {
+-    delay(500);
+-    Serial.print(".");
+-  }
+-
+-  Serial.println();
+-  Serial.println("Wi-Fi connected!");
+-  Serial.print("ESP32 IP: ");
+-  Serial.println(WiFi.localIP());
+-
+-  // Connect to FastAPI's /ws endpoint
+-  webSocket.begin(wsHost, wsPort, wsPath);
+-  webSocket.onEvent(webSocketEvent);
+-
+-  // Auto-reconnect with backoff (5s retry interval)
+-  webSocket.setReconnectInterval(5000);
+-
+-  // Heartbeat: ping every 20s, expect pong within 3s, else reconnect
+-  // webSocket.enableHeartbeat(20000, 3000, 2);
+-
+-  Serial.println("WebSocket client started, connecting to Pi A...");
+-}
+-
+-void loop() {
+-  webSocket.loop();  // must be called continuously, non-blocking
+-}
+\ No newline at end of file
+diff --git a/WIRED_RASPI/index.html b/WIRED_RASPI/index.html
+index 0a29cc2..0d5d11d 100644
+--- a/WIRED_RASPI/index.html
++++ b/WIRED_RASPI/index.html
+@@ -15,34 +15,10 @@
+             ACAP Smart Display
+         </h2>
+ 
+-        <p style="color:#94a3b8;">
+-            Select how this Raspberry Pi is connected
++        <p id="status" style="color:#94a3b8;">
++            Connecting...
+         </p>
+ 
+-        <div style="margin-top:25px;">
+-
+-            <input
+-                type="text"
+-                id="ip-input"
+-                placeholder="Laptop IP"
+-            >
+-
+-            <br>
+-
+-            <button onclick="connectLaptop()">
+-                NORMAL Wi-Fi PI
+-            </button>
+-
+-            <br><br>
+-
+-            <button onclick="connectESP32()">
+-                MODIFIED PI + ESP32
+-            </button>
+-
+-        </div>
+-
+-        <p id="status"></p>
+-
+     </div>
+ 
+ 
+diff --git a/WIRED_RASPI/start_client.bat b/WIRED_RASPI/start_client.bat
+new file mode 100644
+index 0000000..3cbbd1c
+--- /dev/null
++++ b/WIRED_RASPI/start_client.bat
+@@ -0,0 +1,18 @@
++@echo off
++title ACAP Display Client
++cd /d "%~dp0"
++
++set PORT=8080
++
++start /B python -m http.server %PORT%
++
++timeout /t 1 /nobreak > nul
++
++start http://localhost:%PORT%/index.html
++
++echo.
++echo Client running at http://localhost:%PORT%/index.html
++echo Close this window to stop the local server.
++pause > nul
++
++taskkill /F /IM python.exe > nul 2>&1
+diff --git a/WIRED_RASPI/start_client.sh b/WIRED_RASPI/start_client.sh
+new file mode 100644
+index 0000000..007e72d
+--- /dev/null
++++ b/WIRED_RASPI/start_client.sh
+@@ -0,0 +1,34 @@
++#!/bin/bash
++# ============================================================
++# Starts the ACAP display client:
++#   1. Serves this folder over local HTTP (avoids the file://
++#      origin restrictions Chromium applies to local files).
++#   2. Opens Chromium in kiosk mode pointed at it.
++#
++# The client auto-connects over WiFi to the host's WebSocket
++# (see WS_HOST in backend.js) — no IP entry needed here.
++# ============================================================
++
++cd "$(dirname "$0")"
++
++PORT=8080
++
++# Free the port if a previous run left the server up
++fuser -k ${PORT}/tcp 2>/dev/null
++
++python3 -m http.server $PORT &
++SERVER_PID=$!
++
++sleep 1
++
++chromium-browser \
++    --kiosk \
++    --noerrdialogs \
++    --disable-infobars \
++    --disable-session-crashed-bubble \
++    --disable-pinch \
++    --overscroll-history-navigation=0 \
++    "http://localhost:${PORT}/index.html"
++
++# Browser closed (kiosk exited) — stop the local server too.
++kill $SERVER_PID
+diff --git a/WIRELESS_RASPI/Start_App.bat b/WIRELESS_RASPI/Start_App.bat
+index b9ce7cd..fcd9195 100644
+--- a/WIRELESS_RASPI/Start_App.bat
++++ b/WIRELESS_RASPI/Start_App.bat
+@@ -1,19 +1,25 @@
+ @echo off
+ title Merit List Control Station
++cd /d "%~dp0"
++
+ echo ===================================================
+ echo Starting the Merit List Control Station...
+ echo ===================================================
+ 
+-:: Start the mock Raspberry Pi server in a separate hidden background task (Optional: you can delete this line later)
+-start /B python mock_pi_server.py
+-
+-:: Wait for 2 seconds to let the servers start up
+-timeout /t 2 /nobreak > nul
++:: Create the virtual environment on first run, and install deps into it
++if not exist ".venv\Scripts\python.exe" (
++    echo Creating virtual environment...
++    python -m venv .venv
++    ".venv\Scripts\python.exe" -m pip install --upgrade pip
++    ".venv\Scripts\python.exe" -m pip install -r requirements.txt
++)
+ 
+-:: Open the default web browser to your app
++:: Open the default web browser to the control panel
++timeout /t 1 /nobreak > nul
+ start http://127.0.0.1:8000
+ 
+-:: Start the main FastAPI server
+-python main.py
++:: Start the FastAPI server from inside the venv (also advertises
++:: acap-host.local via mDNS)
++".venv\Scripts\python.exe" main.py
+ 
+-pause
+\ No newline at end of file
++pause
+diff --git a/WIRELESS_RASPI/main.py b/WIRELESS_RASPI/main.py
+index 42fb5a3..fdf731b 100644
+--- a/WIRELESS_RASPI/main.py
++++ b/WIRELESS_RASPI/main.py
+@@ -3,11 +3,76 @@ from fastapi.responses import HTMLResponse
+ from fastapi.templating import Jinja2Templates
+ from fastapi.staticfiles import StaticFiles
+ from fastapi.middleware.cors import CORSMiddleware
++from zeroconf import ServiceInfo
++from zeroconf.asyncio import AsyncZeroconf
++from contextlib import asynccontextmanager
+ import pandas as pd
+ import io
+ import json
++import socket
++
++# ============================================================
++# mDNS HOSTNAME (no more typing an IP into the display client)
++#
++# This laptop advertises itself on the local network as
++# HOSTNAME_LABEL + ".local" using zeroconf, which implements
++# mDNS itself rather than relying on OS-level Bonjour/Avahi —
++# so it works the same on Windows, macOS, and Linux. Any
++# display on the same WiFi (Raspberry Pi OS resolves .local
++# names out of the box) can then reach it at a fixed address
++# that never needs updating, even if the laptop's IP changes.
++#
++# WIRED_RASPI/backend.js points at this same hostname via
++# WS_HOST — keep the two in sync if you ever rename it.
++#
++# Uses zeroconf's ASYNC API specifically (AsyncZeroconf), run
++# inside FastAPI's own event loop via lifespan. The sync
++# Zeroconf() class spins up its own background thread with its
++# own event loop, which on Windows fights with uvicorn's loop
++# and throws EventLoopBlocked — the async API avoids that
++# entirely since it shares the loop FastAPI is already running.
++# ============================================================
++HOSTNAME_LABEL = "acap-host"
++
++
++def _get_local_ip() -> str:
++    """Finds this machine's LAN IP without actually sending any
++    traffic — connect() on a UDP socket just asks the OS to pick
++    the interface/route that would be used."""
++    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
++    try:
++        s.connect(("8.8.8.8", 80))
++        return s.getsockname()[0]
++    except Exception:
++        return "127.0.0.1"
++    finally:
++        s.close()
++
++
++@asynccontextmanager
++async def lifespan(app: FastAPI):
++    local_ip = _get_local_ip()
++
++    service_info = ServiceInfo(
++        "_acap._tcp.local.",
++        f"{HOSTNAME_LABEL}._acap._tcp.local.",
++        addresses=[socket.inet_aton(local_ip)],
++        port=8000,
++        server=f"{HOSTNAME_LABEL}.local.",
++    )
++
++    azeroconf = AsyncZeroconf()
++    await azeroconf.async_register_service(service_info)
++
++    print(f"Advertising as {HOSTNAME_LABEL}.local ({local_ip}) via mDNS")
++
++    yield
++
++    await azeroconf.async_unregister_service(service_info)
++    await azeroconf.async_close()
++
+ 
+-app = FastAPI(title="Student Excel Data Viewer")
++app = FastAPI(title="Student Excel Data Viewer", lifespan=lifespan)
+ 
+ app.mount("/static", StaticFiles(directory="static"), name="static")
+ templates = Jinja2Templates(directory="templates")
+diff --git a/WIRELESS_RASPI/requirements.txt b/WIRELESS_RASPI/requirements.txt
+index 0780fb6..179f1fb 100644
+--- a/WIRELESS_RASPI/requirements.txt
++++ b/WIRELESS_RASPI/requirements.txt
+@@ -3,4 +3,5 @@ uvicorn[standard]
+ openpyxl
+ pandas
+ jinja2
+-python-multipart
+\ No newline at end of file
++python-multipart
++zeroconf
+\ No newline at end of file
+diff --git a/WIRELESS_RASPI/start_host.sh b/WIRELESS_RASPI/start_host.sh
+new file mode 100644
+index 0000000..5f8040d
+--- /dev/null
++++ b/WIRELESS_RASPI/start_host.sh
+@@ -0,0 +1,24 @@
++#!/bin/bash
++# ============================================================
++# Starts the Merit List Control Station on Linux/macOS.
++# Also advertises this machine as acap-host.local via mDNS
++# (see main.py) so displays never need a manually typed IP.
++# ============================================================
++
++cd "$(dirname "$0")"
++
++echo "==================================================="
++echo "Starting the Merit List Control Station..."
++echo "==================================================="
++
++# Create the virtual environment on first run, and install deps into it
++if [ ! -f ".venv/bin/python3" ]; then
++    echo "Creating virtual environment..."
++    python3 -m venv .venv
++    .venv/bin/pip install --upgrade pip
++    .venv/bin/pip install -r requirements.txt
++fi
++
++(sleep 1 && xdg-open http://127.0.0.1:8000 > /dev/null 2>&1 &)
++
++.venv/bin/python3 main.py
